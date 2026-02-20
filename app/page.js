@@ -15,6 +15,8 @@ export default function Home() {
   return (
     <div>
       <div>fetched message : {msg}</div>
+
+      <div> CI will be ignored for now as its asking for coverage</div>
     </div>
   );
 }
