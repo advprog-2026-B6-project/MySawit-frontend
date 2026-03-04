@@ -6,7 +6,7 @@ export default function Home() {
   const [msg, setMsg] = useState("Loading...");
 
   useEffect(() => {
-    fetch(`${process.env.BACKEND_URL}/test-json`)
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/test-json`)
       .then((res) => res.json())
       .then((data) =>
         setMsg(data?.text ?? "If you see this, something failed!!!"),
