@@ -20,6 +20,7 @@ const Page = () => {
   const [fullname, setFullname] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [certificationNumber, setCertificationNumber] = useState("");
   const [job, setJob] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -30,15 +31,27 @@ const Page = () => {
   const handleRegister = async (e) => {
     e.preventDefault();
 
-    if (!job || !fullname || !username || !password) {
+    if (
+      !job ||
+      !fullname ||
+      !username ||
+      !password ||
+      (job === "Mandor" && !certificationNumber)
+    ) {
       toast.error("Please fill in all fields");
       return;
     }
 
-    // console.log(job, fullname, username, password);
-
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10s
+
+    const payload = { job, fullname, username, password };
+
+    if (job === "Mandor") {
+      payload.certificationNumber = certificationNumber;
+    }
+
+    // console.log(payload);
 
     try {
       const res = await fetch(
@@ -46,7 +59,7 @@ const Page = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ job, fullname, username, password }),
+          body: JSON.stringify(),
           signal: controller.signal,
         },
       );
@@ -105,7 +118,20 @@ const Page = () => {
             </ComboboxContent>
           </Combobox>
         </div>
-
+        {job === "Mandor" ? (
+          <>
+            <Label>Enter certification number</Label>
+            <Input
+              value={certificationNumber}
+              onChange={(e) => setCertificationNumber(e.target.value)}
+              placeholder="Certification number"
+              required
+              className="mb-4"
+            />
+          </>
+        ) : (
+          ""
+        )}
         <Label>Enter full name</Label>
         <Input
           value={fullname}
