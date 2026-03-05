@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -18,6 +20,15 @@ export default function Home() {
       <div>fetched message : {msg}</div>
 
       <div> CI will be ignored for now as its asking for coverage</div>
+
+      <div className="text-white underline space-x-10 my-10">
+        <Link href="/login">
+          <Button>Login</Button>
+        </Link>
+        <Link href="/register">
+          <Button>Register</Button>
+        </Link>
+      </div>
     </div>
   );
 }
