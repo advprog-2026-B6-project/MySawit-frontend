@@ -15,6 +15,10 @@ export default function Home() {
       );
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+  }
+
   return (
     <div>
       <div>fetched message : {msg}</div>
@@ -28,6 +32,7 @@ export default function Home() {
         <Link href="/register">
           <Button>Register</Button>
         </Link>
+        <Button onClick={handleLogout}>Logout</Button>
       </div>
     </div>
   );
