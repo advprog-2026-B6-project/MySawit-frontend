@@ -106,7 +106,7 @@ const Page = () => {
             placeholder="Password"
             required
           />
-          <Button onClick={togglePasswordVisibility}>
+          <Button onClick={togglePasswordVisibility} type="button">
             {showPassword ? <Eye /> : <EyeClosed />}
           </Button>
         </div>
