@@ -14,14 +14,14 @@ describe("Home component", () => {
 
   test("fetches message and displays it", async () => {
     global.fetch = jest.fn().mockResolvedValue({
-      json: jest.fn().mockResolvedValue({ text: "hello world" }),
+      json: jest.fn().mockResolvedValue({ message: "hello" }),
     });
 
     render(<Home />);
 
     await waitFor(() =>
       expect(screen.getByText(/fetched message :/)).toHaveTextContent(
-        "fetched message : hello world",
+        "fetched message : hello",
       ),
     );
   });
