@@ -45,13 +45,13 @@ const Page = () => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000); // 10s
 
-    const payload = { job, fullname, username, password };
+    const payload = { role: job.toUpperCase(), fullname, username, password };
 
     if (job === "Mandor") {
       payload.certificationNumber = certificationNumber;
     }
 
-    // console.log(payload);
+    console.log(payload);
 
     try {
       const res = await fetch(
@@ -59,7 +59,7 @@ const Page = () => {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(),
+          body: JSON.stringify(payload),
           signal: controller.signal,
         },
       );
