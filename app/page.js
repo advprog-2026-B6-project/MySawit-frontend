@@ -8,12 +8,16 @@ export default function Home() {
   const [msg, setMsg] = useState("Loading...");
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/test-json`)
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hello`)
       .then((res) => res.json())
       .then((data) =>
-        setMsg(data?.text ?? "If you see this, something failed!!!"),
+        setMsg(data?.message ?? "If you see this, something failed!!!"),
       );
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+  };
 
   return (
     <div>
@@ -28,6 +32,7 @@ export default function Home() {
         <Link href="/register">
           <Button>Register</Button>
         </Link>
+        <Button onClick={handleLogout}>Logout</Button>
       </div>
     </div>
   );

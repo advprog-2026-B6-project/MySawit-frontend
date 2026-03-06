@@ -19,61 +19,61 @@ const Page = () => {
   };
 
   const handleLogin = async (e) => {
-      e.preventDefault();
-  
-      if (!username || !password) {
-        toast.error("Please fill in all fields");
+    e.preventDefault();
+
+    if (!username || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    // console.log(username, password);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+          signal: controller.signal,
+        },
+      );
+
+      clearTimeout(timeout);
+
+      let data;
+      try {
+        data = await res.json();
+      } catch {
+        data = { message: "Login failed" };
+      }
+
+      if (!res.ok) {
+        toast.error(data.message);
         return;
       }
-  
-      // console.log(username, password);
-  
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s
-  
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-            signal: controller.signal,
-          },
-        );
-  
-        clearTimeout(timeout);
-  
-        let data;
-        try {
-          data = await res.json();
-        } catch {
-          data = { message: "Login failed" };
-        }
 
-        if (!res.ok) {
-          toast.error(data.message);
-          return;
-        }
-
-        if (!data.token) {
-          toast.error("Invalid server response");
-          return;
-        }
-
-        localStorage.setItem("token", data.token);
-  
-        toast.success("Login successful");
-        router.push("/");
-      } catch (err) {
-        if (err.name === "AbortError") {
-          toast.error("Request timed out");
-          return;
-        }
-  
-        toast.error("Error. Please try again.");
+      if (!data.token) {
+        toast.error("Invalid server response");
+        return;
       }
-    };
+
+      localStorage.setItem("token", data.token);
+
+      toast.success("Login successful");
+      router.push("/");
+    } catch (err) {
+      if (err.name === "AbortError") {
+        toast.error("Request timed out");
+        return;
+      }
+
+      toast.error("Error. Please try again.");
+    }
+  };
 
   useEffect(() => {
     localStorage.removeItem("token");
@@ -106,7 +106,7 @@ const Page = () => {
             placeholder="Password"
             required
           />
-          <Button onClick={togglePasswordVisibility}>
+          <Button onClick={togglePasswordVisibility} type="button">
             {showPassword ? <Eye /> : <EyeClosed />}
           </Button>
         </div>
