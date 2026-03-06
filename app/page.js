@@ -1,23 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function Home() {
-  const [msg, setMsg] = useState("Loading...");
-
-  useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/test-json`)
-      .then((res) => res.json())
-      .then((data) =>
-        setMsg(data?.text ?? "If you see this, something failed!!!"),
-      );
-  }, []);
-
   return (
-    <div>
-      <div>fetched message : {msg}</div>
-
-      <div> CI will be ignored for now as its asking for coverage</div>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8">
+      <h1 className="text-4xl font-bold text-green-700 mb-6">
+        MySawit
+      </h1>
+      <p className="text-lg text-gray-600 mb-8">
+        Sistem Manajemen Pengiriman Sawit
+      </p>
+      
+      <div className="flex flex-col gap-4">
+        <Link 
+          href="/pengiriman"
+          className="px-8 py-4 bg-green-600 text-white rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors text-center"
+        >
+          Masuk ke Sistem Pengiriman
+        </Link>
+      </div>
     </div>
   );
 }
