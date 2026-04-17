@@ -4,6 +4,9 @@ import { useState, useCallback } from "react";
 import { fetchPengirimanSupir, ubahStatusPengiriman } from "../lib/api";
 import Alert from "./Alert";
 import TablePengirimanSupir from "./TablePengirimanSupir";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function SupirTab() {
   const [supirId, setSupirId] = useState("");
@@ -56,37 +59,40 @@ export default function SupirTab() {
   };
 
   return (
-    <div>
+    <div className="space-y-6">
       <Alert
         message={alert.message}
         type={alert.type}
         onClose={() => setAlert({ message: "", type: "success" })}
       />
 
-      <div className="section">
-        <h2>Daftar Pengiriman Saya</h2>
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Daftar Pengiriman Saya</h2>
+          <p className="text-sm text-muted-foreground">
+            Masukkan ID supir untuk melihat pengiriman yang ditugaskan.
+          </p>
+        </div>
 
-        <div className="form-group">
-          <label htmlFor="supirIdInput">Masukkan Supir Truk ID:</label>
-          <input
-            type="text"
-            id="supirIdInput"
-            placeholder="Masukkan UUID Supir Truk"
-            value={supirId}
-            onChange={(e) => setSupirId(e.target.value)}
-            style={{ maxWidth: "400px", marginBottom: "10px" }}
-            data-testid="input-supir-id"
-          />
-          <div style={{ marginTop: "10px" }}>
-            <button
-              className="btn"
-              onClick={loadPengirimanSupir}
-              disabled={loading}
-              data-testid="btn-lihat-pengiriman"
-            >
-              {loading ? "Memuat..." : "Lihat Pengiriman"}
-            </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="w-full max-w-md space-y-2">
+            <Label htmlFor="supirIdInput">Supir Truk ID</Label>
+            <Input
+              type="text"
+              id="supirIdInput"
+              placeholder="Masukkan UUID Supir Truk"
+              value={supirId}
+              onChange={(e) => setSupirId(e.target.value)}
+              data-testid="input-supir-id"
+            />
           </div>
+          <Button
+            onClick={loadPengirimanSupir}
+            disabled={loading}
+            data-testid="btn-lihat-pengiriman"
+          >
+            {loading ? "Memuat..." : "Lihat Pengiriman"}
+          </Button>
         </div>
 
         <TablePengirimanSupir
@@ -95,7 +101,7 @@ export default function SupirTab() {
           onUbahStatus={handleUbahStatus}
           supirId={supirId}
         />
-      </div>
+      </section>
     </div>
   );
 }

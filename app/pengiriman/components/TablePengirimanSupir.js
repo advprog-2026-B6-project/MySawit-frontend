@@ -1,92 +1,100 @@
 "use client";
 
 import { formatDate } from "../lib/api";
+import { Button } from "@/components/ui/button";
+
+const statusBadge = (status) => {
+  const styles = {
+    MENUNGGU: "bg-amber-500/10 text-amber-600 dark:text-amber-300",
+    MEMUAT: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
+    MENGIRIM: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
+    TIBA: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+  };
+
+  return styles[status] ?? "bg-muted text-muted-foreground";
+};
 
 export default function TablePengirimanSupir({ data, loading, onUbahStatus, supirId }) {
   if (loading) {
-    return <div className="loading">Memuat data pengiriman...</div>;
+    return <div className="py-6 text-sm text-muted-foreground">Memuat data pengiriman...</div>;
   }
 
   const getStatusButtons = (pengiriman) => {
-    const buttons = [];
+    if (pengiriman.status === "TIBA") {
+      return <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">Selesai</span>;
+    }
 
-    if (pengiriman.status === "MENUNGGU" || pengiriman.status === "MEMUAT") {
-      if (pengiriman.status !== "MEMUAT") {
-        buttons.push(
-          <button
+    return (
+      <div className="flex flex-wrap gap-2">
+        {pengiriman.status !== "MEMUAT" && (pengiriman.status === "MENUNGGU" || pengiriman.status === "MEMUAT") && (
+          <Button
             key="memuat"
-            className="btn btn-status btn-memuat"
+            size="xs"
+            variant="secondary"
             onClick={() => onUbahStatus(pengiriman.id, supirId, "MEMUAT")}
             data-testid={`btn-memuat-${pengiriman.id}`}
           >
             Memuat
-          </button>
-        );
-      }
-      buttons.push(
-        <button
-          key="mengirim"
-          className="btn btn-status btn-mengirim"
-          onClick={() => onUbahStatus(pengiriman.id, supirId, "MENGIRIM")}
-          data-testid={`btn-mengirim-${pengiriman.id}`}
-        >
-          Mengirim
-        </button>
-      );
-    }
-
-    if (pengiriman.status === "MENGIRIM") {
-      buttons.push(
-        <button
-          key="tiba"
-          className="btn btn-status btn-tiba"
-          onClick={() => onUbahStatus(pengiriman.id, supirId, "TIBA")}
-          data-testid={`btn-tiba-${pengiriman.id}`}
-        >
-          Tiba
-        </button>
-      );
-    }
-
-    if (pengiriman.status === "TIBA") {
-      return <span style={{ color: "#4caf50", fontWeight: "bold" }}>Selesai</span>;
-    }
-
-    return buttons.length > 0 ? buttons : "-";
+          </Button>
+        )}
+        {(pengiriman.status === "MENUNGGU" || pengiriman.status === "MEMUAT") && (
+          <Button
+            key="mengirim"
+            size="xs"
+            variant="default"
+            onClick={() => onUbahStatus(pengiriman.id, supirId, "MENGIRIM")}
+            data-testid={`btn-mengirim-${pengiriman.id}`}
+          >
+            Mengirim
+          </Button>
+        )}
+        {pengiriman.status === "MENGIRIM" && (
+          <Button
+            key="tiba"
+            size="xs"
+            variant="outline"
+            onClick={() => onUbahStatus(pengiriman.id, supirId, "TIBA")}
+            data-testid={`btn-tiba-${pengiriman.id}`}
+          >
+            Tiba
+          </Button>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="table-container">
-      <table data-testid="table-pengiriman-supir">
-        <thead>
+    <div className="overflow-hidden rounded-lg border" data-testid="table-pengiriman-supir">
+      <table className="w-full text-sm">
+        <thead className="bg-muted text-xs uppercase text-muted-foreground">
           <tr>
-            <th>ID Pengiriman</th>
-            <th>Muatan (kg)</th>
-            <th>Tujuan</th>
-            <th>Status</th>
-            <th>Waktu Dibuat</th>
-            <th>Ubah Status</th>
+            <th className="px-4 py-3 text-left font-semibold">ID Pengiriman</th>
+            <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
+            <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
+            <th className="px-4 py-3 text-left font-semibold">Status</th>
+            <th className="px-4 py-3 text-left font-semibold">Waktu Dibuat</th>
+            <th className="px-4 py-3 text-left font-semibold">Ubah Status</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y">
           {data && data.length > 0 ? (
             data.map((pengiriman) => (
-              <tr key={pengiriman.id}>
-                <td>{pengiriman.id}</td>
-                <td>{pengiriman.muatanKg} kg</td>
-                <td>{pengiriman.tujuan}</td>
-                <td>
-                  <span className={`status-badge status-${pengiriman.status}`}>
+              <tr key={pengiriman.id} className="hover:bg-muted/50">
+                <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.id}</td>
+                <td className="px-4 py-3 font-medium">{pengiriman.muatanKg} kg</td>
+                <td className="px-4 py-3">{pengiriman.tujuan}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadge(pengiriman.status)}`}>
                     {pengiriman.status}
                   </span>
                 </td>
-                <td>{formatDate(pengiriman.waktuDibuat)}</td>
-                <td>{getStatusButtons(pengiriman)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.waktuDibuat)}</td>
+                <td className="px-4 py-3">{getStatusButtons(pengiriman)}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="6" style={{ textAlign: "center" }}>
+              <td colSpan="6" className="px-4 py-6 text-center text-sm text-muted-foreground">
                 Tidak ada pengiriman ditemukan
               </td>
             </tr>

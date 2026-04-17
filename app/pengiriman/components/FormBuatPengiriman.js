@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { validateMuatan } from "../lib/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
   const [formData, setFormData] = useState({
@@ -46,11 +49,15 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} data-testid="form-buat-pengiriman">
-      {error && <div className="alert alert-error">{error}</div>}
+    <form onSubmit={handleSubmit} data-testid="form-buat-pengiriman" className="space-y-4">
+      {error && (
+        <div className="rounded-lg border border-rose-200/60 bg-rose-50 px-4 py-3 text-sm text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+          {error}
+        </div>
+      )}
 
-      <div className="form-group">
-        <label htmlFor="supirTrukId">Supir Truk:</label>
+      <div className="space-y-2">
+        <Label htmlFor="supirTrukId">Supir Truk</Label>
         <select
           id="supirTrukId"
           name="supirTrukId"
@@ -58,6 +65,7 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
           onChange={handleChange}
           required
           data-testid="select-supir"
+          className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           <option value="">-- Pilih Supir Truk --</option>
           {supirList &&
@@ -69,11 +77,11 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
         </select>
       </div>
 
-      <div className="form-group">
-        <label htmlFor="muatanKg">
-          Muatan (kg): <small style={{ color: "#f44336" }}>(Max 400 kg)</small>
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="muatanKg">
+          Muatan (kg) <span className="text-xs text-muted-foreground">(Max 400 kg)</span>
+        </Label>
+        <Input
           type="number"
           id="muatanKg"
           name="muatanKg"
@@ -88,9 +96,9 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
         />
       </div>
 
-      <div className="form-group">
-        <label htmlFor="tujuan">Tujuan:</label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="tujuan">Tujuan</Label>
+        <Input
           type="text"
           id="tujuan"
           name="tujuan"
@@ -102,9 +110,9 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
         />
       </div>
 
-      <button type="submit" className="btn" disabled={loading} data-testid="btn-buat-pengiriman">
+      <Button type="submit" disabled={loading} data-testid="btn-buat-pengiriman">
         {loading ? "Memproses..." : "Buat Pengiriman"}
-      </button>
+      </Button>
     </form>
   );
 }

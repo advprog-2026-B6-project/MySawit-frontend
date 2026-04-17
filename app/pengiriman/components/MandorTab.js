@@ -11,6 +11,7 @@ import Alert from "./Alert";
 import TableSupirBertugas from "./TableSupirBertugas";
 import TablePengirimanBerlangsung from "./TablePengirimanBerlangsung";
 import FormBuatPengiriman from "./FormBuatPengiriman";
+import { Button } from "@/components/ui/button";
 
 export default function MandorTab() {
   const [supirBertugas, setSupirBertugas] = useState([]);
@@ -94,48 +95,58 @@ export default function MandorTab() {
   }, [loadSupirBertugas, loadAllSupir, loadPengirimanBerlangsung]);
 
   return (
-    <div>
+    <div className="space-y-8">
       <Alert
         message={alert.message}
         type={alert.type}
         onClose={() => setAlert({ message: "", type: "success" })}
       />
 
-      {/* Daftar Supir Truk Bertugas */}
-      <div className="section">
-        <h2>Daftar Supir Truk Bertugas</h2>
-        <button
-          className="btn btn-refresh"
-          onClick={loadSupirBertugas}
-          data-testid="btn-refresh-supir"
-        >
-          Refresh
-        </button>
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Daftar Supir Truk Bertugas</h2>
+            <p className="text-sm text-muted-foreground">Pantau supir yang sedang aktif.</p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={loadSupirBertugas}
+            data-testid="btn-refresh-supir"
+          >
+            Refresh
+          </Button>
+        </div>
         <TableSupirBertugas data={supirBertugas} loading={loadingSupir} />
-      </div>
+      </section>
 
-      {/* Form Buat Pengiriman */}
-      <div className="section">
-        <h2>Tugaskan Supir Truk (Buat Pengiriman)</h2>
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Tugaskan Supir Truk</h2>
+          <p className="text-sm text-muted-foreground">Buat pengiriman baru dan atur muatan.</p>
+        </div>
         <FormBuatPengiriman
           supirList={allSupir}
           onSubmit={handleBuatPengiriman}
           loading={loadingForm}
         />
-      </div>
+      </section>
 
-      {/* Daftar Pengiriman Berlangsung */}
-      <div className="section">
-        <h2>Daftar Pengiriman Berlangsung</h2>
-        <button
-          className="btn btn-refresh"
-          onClick={loadPengirimanBerlangsung}
-          data-testid="btn-refresh-pengiriman"
-        >
-          Refresh
-        </button>
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">Daftar Pengiriman Berlangsung</h2>
+            <p className="text-sm text-muted-foreground">Lihat status pengiriman yang aktif.</p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={loadPengirimanBerlangsung}
+            data-testid="btn-refresh-pengiriman"
+          >
+            Refresh
+          </Button>
+        </div>
         <TablePengirimanBerlangsung data={pengirimanBerlangsung} loading={loadingPengiriman} />
-      </div>
+      </section>
     </div>
   );
 }
