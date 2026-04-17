@@ -1,24 +1,38 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [msg, setMsg] = useState("Loading...");
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hello`)
+      .then((res) => res.json())
+      .then((data) =>
+        setMsg(data?.message ?? "If you see this, something failed!!!"),
+      );
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+  };
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-8">
-      <h1 className="text-4xl font-bold text-green-700 mb-6">
-        MySawit
-      </h1>
-      <p className="text-lg text-gray-600 mb-8">
-        Sistem Manajemen Pengiriman Sawit
-      </p>
-      
-      <div className="flex flex-col gap-4">
-        <Link 
-          href="/pengiriman"
-          className="px-8 py-4 bg-green-600 text-white rounded-lg text-lg font-semibold hover:bg-green-700 transition-colors text-center"
-        >
-          Masuk ke Sistem Pengiriman
+    <div>
+      <div>fetched message : {msg}</div>
+
+      <div> CI will be ignored for now as its asking for coverage</div>
+
+      <div className="text-white underline space-x-10 my-10">
+        <Link href="/login">
+          <Button>Login</Button>
         </Link>
+        <Link href="/register">
+          <Button>Register</Button>
+        </Link>
+        <Button onClick={handleLogout}>Logout</Button>
       </div>
     </div>
   );
