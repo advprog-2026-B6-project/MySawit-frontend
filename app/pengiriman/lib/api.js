@@ -10,6 +10,11 @@ export async function fetchAllSupir() {
   return response.json();
 }
 
+export async function fetchSupirById(supirId) {
+  const response = await fetch(`${API_BASE_URL}/api/supir-truk/${supirId}`);
+  return response.json();
+}
+
 export async function fetchPengirimanBerlangsung() {
   const response = await fetch(`${API_BASE_URL}/api/pengiriman/berlangsung`);
   return response.json();
@@ -17,6 +22,11 @@ export async function fetchPengirimanBerlangsung() {
 
 export async function fetchPengirimanSupir(supirId) {
   const response = await fetch(`${API_BASE_URL}/api/pengiriman/supir/${supirId}`);
+  return response.json();
+}
+
+export async function fetchPengirimanSupirTruk(supirId) {
+  const response = await fetch(`${API_BASE_URL}/api/supir-truk/${supirId}/pengiriman`);
   return response.json();
 }
 

@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
 export default function TableSupirBertugas({ data, loading }) {
   if (loading) {
     return <div className="py-6 text-sm text-muted-foreground">Memuat data supir...</div>;
@@ -15,6 +18,7 @@ export default function TableSupirBertugas({ data, loading }) {
             <th className="px-4 py-3 text-left font-semibold">No. Telepon</th>
             <th className="px-4 py-3 text-left font-semibold">Plat Nomor Truk</th>
             <th className="px-4 py-3 text-left font-semibold">Status</th>
+            <th className="px-4 py-3 text-left font-semibold">Aksi</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -36,11 +40,16 @@ export default function TableSupirBertugas({ data, loading }) {
                     {supir.sedangBertugas ? "Bertugas" : "Tidak Bertugas"}
                   </span>
                 </td>
+                <td className="px-4 py-3">
+                  <Button asChild size="xs" variant="outline">
+                    <Link href={`/pengiriman/supir/${supir.id}`}>Lihat Profil</Link>
+                  </Button>
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="5" className="px-4 py-6 text-center text-sm text-muted-foreground">
+              <td colSpan="6" className="px-4 py-6 text-center text-sm text-muted-foreground">
                 Tidak ada supir bertugas
               </td>
             </tr>
