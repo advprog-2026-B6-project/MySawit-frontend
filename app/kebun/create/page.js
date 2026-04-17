@@ -2,12 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeft, Save, Loader2, MapPin } from "lucide-react";
+
+const API = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+function authHeaders() {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export default function CreateKebunPage() {
     const router = useRouter();
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
-
     const [form, setForm] = useState({
         namaKebun: "",
         kodeUnik: "",
@@ -26,7 +33,6 @@ export default function CreateKebunPage() {
         setError("");
         setLoading(true);
 
-        // Client-side: validasi format kode unik
         const kodeRegex = /^[A-Z]{2}-\d{4}$/;
         if (!kodeRegex.test(form.kodeUnik)) {
             setError("Format kode unik tidak valid. Gunakan format: XX-0000 (contoh: KB-0001)");
@@ -44,161 +50,133 @@ export default function CreateKebunPage() {
         };
 
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/kebun`, {
+            const res = await fetch(`${API}/kebun`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", ...authHeaders() },
                 body: JSON.stringify(body),
             });
-
             if (!res.ok) {
                 const data = await res.json();
                 setError(data.error || "Gagal membuat kebun");
                 setLoading(false);
                 return;
             }
-
             router.push("/kebun");
-        } catch (err) {
+        } catch {
             setError("Terjadi kesalahan koneksi ke server");
             setLoading(false);
         }
     };
 
+    const coordFields = [
+        { label: "Kiri Atas", xName: "kiriAtasX", yName: "kiriAtasY" },
+        { label: "Kanan Atas", xName: "kananAtasX", yName: "kananAtasY" },
+        { label: "Kanan Bawah", xName: "kananBawahX", yName: "kananBawahY" },
+        { label: "Kiri Bawah", xName: "kiriBawahX", yName: "kiriBawahY" },
+    ];
+
     return (
-        <div style={{ maxWidth: "600px", margin: "0 auto", padding: "2rem" }}>
-            <h1 style={{ fontSize: "1.8rem", fontWeight: "bold", marginBottom: "1.5rem" }}>
-                Buat Kebun Sawit Baru
-            </h1>
-
-            {error && (
-                <div
-                    style={{
-                        padding: "0.75rem",
-                        backgroundColor: "#fef2f2",
-                        color: "#dc2626",
-                        border: "1px solid #fecaca",
-                        borderRadius: "6px",
-                        marginBottom: "1rem",
-                    }}
+        <div className="min-h-screen bg-gradient-to-br from-[#0a0f1a] via-[#0d1525] to-[#0a1628] text-white">
+            <div className="max-w-2xl mx-auto px-6 py-10">
+                <button
+                    onClick={() => router.push("/kebun")}
+                    className="inline-flex items-center gap-2 text-sm text-white/40 hover:text-white/70 mb-8 transition-colors cursor-pointer"
                 >
-                    {error}
-                </div>
-            )}
+                    <ArrowLeft className="size-4" />
+                    Kembali ke Daftar Kebun
+                </button>
 
-            <form onSubmit={handleSubmit}>
-                {/* Nama Kebun */}
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Nama Kebun</label>
-                    <input
-                        type="text"
-                        name="namaKebun"
-                        value={form.namaKebun}
-                        onChange={handleChange}
-                        required
-                        style={inputStyle}
-                    />
-                </div>
+                <h1 className="text-2xl font-bold tracking-tight mb-1">Buat Kebun Baru</h1>
+                <p className="text-sm text-white/40 mb-8">Isi data di bawah untuk mendaftarkan kebun sawit baru</p>
 
-                {/* Kode Unik */}
-                <div style={fieldStyle}>
-                    <label style={labelStyle}>Kode Unik (format: XX-0000)</label>
-                    <input
-                        type="text"
-                        name="kodeUnik"
-                        value={form.kodeUnik}
-                        onChange={handleChange}
-                        placeholder="Contoh: KB-0001"
-                        required
-                        style={inputStyle}
-                    />
-                </div>
+                {error && (
+                    <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400">
+                        {error}
+                    </div>
+                )}
 
-                {/* Koordinat */}
-                <h2 style={{ fontSize: "1.2rem", fontWeight: "600", margin: "1.5rem 0 0.75rem" }}>
-                    Koordinat (dalam meter)
-                </h2>
-
-                {[
-                    { label: "Kiri Atas", xName: "kiriAtasX", yName: "kiriAtasY" },
-                    { label: "Kanan Atas", xName: "kananAtasX", yName: "kananAtasY" },
-                    { label: "Kanan Bawah", xName: "kananBawahX", yName: "kananBawahY" },
-                    { label: "Kiri Bawah", xName: "kiriBawahX", yName: "kiriBawahY" },
-                ].map(({ label, xName, yName }) => (
-                    <div key={label} style={{ ...fieldStyle, display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                        <label style={{ ...labelStyle, minWidth: "100px" }}>{label}</label>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-white/60 mb-2">Nama Kebun</label>
                         <input
-                            type="number"
-                            name={xName}
-                            value={form[xName]}
+                            type="text"
+                            name="namaKebun"
+                            value={form.namaKebun}
                             onChange={handleChange}
-                            placeholder="X"
-                            step="any"
                             required
-                            style={{ ...inputStyle, flex: 1 }}
-                        />
-                        <input
-                            type="number"
-                            name={yName}
-                            value={form[yName]}
-                            onChange={handleChange}
-                            placeholder="Y"
-                            step="any"
-                            required
-                            style={{ ...inputStyle, flex: 1 }}
+                            placeholder="Contoh: Kebun Utara"
+                            className="w-full h-11 px-4 rounded-lg bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                         />
                     </div>
-                ))}
 
-                {/* Buttons */}
-                <div style={{ display: "flex", gap: "0.75rem", marginTop: "1.5rem" }}>
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        style={{
-                            padding: "0.6rem 1.5rem",
-                            backgroundColor: loading ? "#9ca3af" : "#2563eb",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "6px",
-                            cursor: loading ? "not-allowed" : "pointer",
-                        }}
-                    >
-                        {loading ? "Menyimpan..." : "Simpan"}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => router.push("/kebun")}
-                        style={{
-                            padding: "0.6rem 1.5rem",
-                            backgroundColor: "#e5e7eb",
-                            color: "#374151",
-                            border: "none",
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                        }}
-                    >
-                        Batal
-                    </button>
-                </div>
-            </form>
+                    <div>
+                        <label className="block text-sm font-medium text-white/60 mb-2">Kode Unik (format: XX-0000)</label>
+                        <input
+                            type="text"
+                            name="kodeUnik"
+                            value={form.kodeUnik}
+                            onChange={handleChange}
+                            required
+                            placeholder="Contoh: KB-0001"
+                            className="w-full h-11 px-4 rounded-lg bg-white/5 border border-white/10 text-sm text-white font-mono placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                        />
+                    </div>
+
+                    <div>
+                        <div className="flex items-center gap-2 mb-4">
+                            <MapPin className="size-4 text-emerald-400" />
+                            <h2 className="text-sm font-medium text-white/60">Koordinat (dalam meter)</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {coordFields.map(({ label, xName, yName }) => (
+                                <div key={label} className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-4">
+                                    <label className="block text-xs font-medium text-white/40 mb-2.5">{label}</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            name={xName}
+                                            value={form[xName]}
+                                            onChange={handleChange}
+                                            placeholder="X"
+                                            step="any"
+                                            required
+                                            className="flex-1 h-9 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-all"
+                                        />
+                                        <input
+                                            type="number"
+                                            name={yName}
+                                            value={form[yName]}
+                                            onChange={handleChange}
+                                            placeholder="Y"
+                                            step="any"
+                                            required
+                                            className="flex-1 h-9 px-3 rounded-md bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-emerald-500/50 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3 pt-4">
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-semibold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-emerald-500/20"
+                        >
+                            {loading ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                            {loading ? "Menyimpan..." : "Simpan"}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => router.push("/kebun")}
+                            className="px-6 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-medium text-white/60 hover:text-white rounded-lg transition-all cursor-pointer"
+                        >
+                            Batal
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 }
-
-const fieldStyle = {
-    marginBottom: "1rem",
-};
-
-const labelStyle = {
-    display: "block",
-    marginBottom: "0.25rem",
-    fontWeight: "500",
-};
-
-const inputStyle = {
-    width: "100%",
-    padding: "0.5rem 0.75rem",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    boxSizing: "border-box",
-};
