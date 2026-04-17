@@ -32,6 +32,15 @@ export default function Home() {
         <Link href="/register">
           <Button>Register</Button>
         </Link>
+        <Link href="/buruh/hasil">
+          <Button>Buruh Form Hasil</Button>
+        </Link>
+        <Link href="/buruh/riwayat">
+          <Button>Buruh Riwayat</Button>
+        </Link>
+        <Link href="/mandor/riwayat">
+          <Button>Mandor Riwayat</Button>
+        </Link>
         <Button onClick={handleLogout}>Logout</Button>
       </div>
     </div>
