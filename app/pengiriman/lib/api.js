@@ -52,6 +52,28 @@ export async function ubahStatusPengiriman(pengirimanId, data) {
   return response.json();
 }
 
+export async function approvePengiriman(pengirimanId, mandorId) {
+  const response = await fetch(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/approve`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ mandorId }),
+  });
+  return response.json();
+}
+
+export async function rejectPengiriman(pengirimanId, mandorId, alasanPenolakan) {
+  const response = await fetch(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/reject`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ mandorId, alasanPenolakan }),
+  });
+  return response.json();
+}
+
 export function formatDate(dateString) {
   if (!dateString) return '-';
   const date = new Date(dateString);

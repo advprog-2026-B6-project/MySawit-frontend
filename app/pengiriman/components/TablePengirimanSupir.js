@@ -9,6 +9,8 @@ const statusBadge = (status) => {
     MEMUAT: "bg-orange-500/10 text-orange-600 dark:text-orange-300",
     MENGIRIM: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
     TIBA: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    DISETUJUI: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
+    DITOLAK: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
   };
 
   return styles[status] ?? "bg-muted text-muted-foreground";
@@ -20,8 +22,16 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
   }
 
   const getStatusButtons = (pengiriman) => {
+    if (pengiriman.status === "DISETUJUI") {
+      return <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">Disetujui</span>;
+    }
+
+    if (pengiriman.status === "DITOLAK") {
+      return <span className="text-sm font-semibold text-rose-500 dark:text-rose-300">Ditolak</span>;
+    }
+
     if (pengiriman.status === "TIBA") {
-      return <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">Selesai</span>;
+      return <span className="text-sm font-semibold text-muted-foreground">Menunggu Approval</span>;
     }
 
     return (

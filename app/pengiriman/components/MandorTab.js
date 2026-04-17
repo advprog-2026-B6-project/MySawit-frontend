@@ -6,12 +6,16 @@ import {
   fetchAllSupir,
   fetchPengirimanBerlangsung,
   buatPengiriman,
+  approvePengiriman,
+  rejectPengiriman,
 } from "../lib/api";
 import Alert from "./Alert";
 import TableSupirBertugas from "./TableSupirBertugas";
 import TablePengirimanBerlangsung from "./TablePengirimanBerlangsung";
 import FormBuatPengiriman from "./FormBuatPengiriman";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function MandorTab() {
   const [supirBertugas, setSupirBertugas] = useState([]);
@@ -20,6 +24,8 @@ export default function MandorTab() {
   const [loadingSupir, setLoadingSupir] = useState(false);
   const [loadingPengiriman, setLoadingPengiriman] = useState(false);
   const [loadingForm, setLoadingForm] = useState(false);
+  const [loadingApproval, setLoadingApproval] = useState(null);
+  const [mandorId, setMandorId] = useState("");
   const [alert, setAlert] = useState({ message: "", type: "success" });
 
   const showAlert = (message, type = "success") => {
@@ -88,6 +94,48 @@ export default function MandorTab() {
     }
   };
 
+  const handleApprove = async (pengirimanId) => {
+    if (!mandorId.trim()) {
+      showAlert("Masukkan Mandor ID sebelum menyetujui pengiriman", "error");
+      return;
+    }
+    setLoadingApproval(pengirimanId);
+    try {
+      const result = await approvePengiriman(pengirimanId, Number(mandorId));
+      if (result.success) {
+        showAlert("Pengiriman berhasil disetujui!");
+        loadPengirimanBerlangsung();
+      } else {
+        showAlert(result.message || "Gagal menyetujui pengiriman", "error");
+      }
+    } catch (error) {
+      showAlert("Gagal menyetujui pengiriman: " + error.message, "error");
+    } finally {
+      setLoadingApproval(null);
+    }
+  };
+
+  const handleReject = async (pengirimanId, alasanPenolakan) => {
+    if (!mandorId.trim()) {
+      showAlert("Masukkan Mandor ID sebelum menolak pengiriman", "error");
+      return;
+    }
+    setLoadingApproval(pengirimanId);
+    try {
+      const result = await rejectPengiriman(pengirimanId, Number(mandorId), alasanPenolakan);
+      if (result.success) {
+        showAlert("Pengiriman berhasil ditolak");
+        loadPengirimanBerlangsung();
+      } else {
+        showAlert(result.message || "Gagal menolak pengiriman", "error");
+      }
+    } catch (error) {
+      showAlert("Gagal menolak pengiriman: " + error.message, "error");
+    } finally {
+      setLoadingApproval(null);
+    }
+  };
+
   useEffect(() => {
     loadSupirBertugas();
     loadAllSupir();
@@ -145,7 +193,29 @@ export default function MandorTab() {
             Refresh
           </Button>
         </div>
-        <TablePengirimanBerlangsung data={pengirimanBerlangsung} loading={loadingPengiriman} />
+        <div className="grid gap-3 rounded-lg border bg-card/50 p-4 text-card-foreground shadow-sm sm:grid-cols-[minmax(0,320px)_1fr]">
+          <div className="space-y-2">
+            <Label htmlFor="mandorId">Mandor ID</Label>
+            <Input
+              id="mandorId"
+              type="number"
+              placeholder="Masukkan Mandor ID"
+              value={mandorId}
+              onChange={(e) => setMandorId(e.target.value)}
+            />
+          </div>
+          <div className="text-xs text-muted-foreground sm:pt-8">
+            Mandor ID diperlukan untuk menyetujui atau menolak hasil pengiriman yang sudah tiba.
+          </div>
+        </div>
+        <TablePengirimanBerlangsung
+          data={pengirimanBerlangsung}
+          loading={loadingPengiriman}
+          mandorId={mandorId}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          loadingApprovalId={loadingApproval}
+        />
       </section>
     </div>
   );
