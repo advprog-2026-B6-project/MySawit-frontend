@@ -57,7 +57,7 @@ export default function Home() {
             </div>
           </div>
           <div className="relative size-160 shrink-0">
-            <Image src="/panda.png" alt="" fill className="object-cover" />
+            <Image src="/panda.png" alt="" fill className="object-contain" />
           </div>
         </div>
       </div>
