@@ -12,7 +12,7 @@ export default function Home() {
   useEffect(() => {
     // TODO: Move JWT parsing into an auth module/context when the shared auth layer is available.
     const token = localStorage.getItem("token");
-    setAuthRole(parseRoleFromToken(token));
+    // setAuthRole(parseRoleFromToken(token));
   }, []);
 
   const handleLogout = () => {
@@ -44,7 +44,7 @@ export default function Home() {
               Custom sawit farm management app. Features include role based
               authentication and field, haul, delivery, and payment management.
               Adpro kelompok B6. Authentication - Daffa Ismail | Kebun - Felesia
-              Junelus | Hasil Farrel - Rifqi Bagaskoro | Pengiriman - Aufa Daffa
+              Junelus | Hasil - Farrel Rifqi Bagaskoro | Pengiriman - Aufa Daffa
               Satriatama | Pembayaran - Firos Aqiela Zufa
             </div>
             <div className="flex gap-4 justify-center">

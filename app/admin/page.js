@@ -18,8 +18,6 @@ const Page = () => {
 
   const [users, setUsers] = useState([]);
 
-  const token = localStorage.getItem("token");
-
   const searchType = ["Name", "Role"];
 
   const usersMock = [
@@ -74,6 +72,7 @@ const Page = () => {
   ];
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
     async function fetchUsers() {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/users`,

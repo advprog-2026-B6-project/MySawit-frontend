@@ -1,7 +1,8 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 const Page = () => {
+  const [msg, setMsg] = useState('');
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hello`)
       .then((res) => res.json())
