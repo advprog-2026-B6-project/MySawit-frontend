@@ -1,0 +1,311 @@
+/* ========== Pengiriman Page Styles (Dark Theme) ========== */
+
+.pengiriman-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #e4e4e4;
+  padding: 20px;
+}
+
+.pengiriman-container h1 {
+  text-align: center;
+  color: #4ade80;
+  margin-bottom: 20px;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+/* Tab Styles */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  justify-content: center;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  border: none;
+  background-color: #374151;
+  color: #d1d5db;
+  cursor: pointer;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.tab-btn:hover {
+  background-color: #4b5563;
+  border-color: #4ade80;
+}
+
+.tab-btn.active {
+  background-color: #166534;
+  color: white;
+  border-color: #4ade80;
+}
+
+/* Section Styles */
+.section {
+  margin-bottom: 30px;
+}
+
+.section h2 {
+  color: #4ade80;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #166534;
+  padding-bottom: 10px;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+/* Card Styles */
+.card {
+  background-color: #1f2937;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border: 1px solid #374151;
+}
+
+/* Table Styles */
+.table-container {
+  overflow-x: auto;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background-color: #111827;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.table-container th,
+.table-container td {
+  border: 1px solid #374151;
+  padding: 12px;
+  text-align: left;
+}
+
+.table-container th {
+  background-color: #166534;
+  color: white;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.table-container td {
+  color: #d1d5db;
+}
+
+.table-container tr:nth-child(even) {
+  background-color: #1f2937;
+}
+
+.table-container tr:nth-child(odd) {
+  background-color: #111827;
+}
+
+.table-container tr:hover {
+  background-color: #374151;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #374151;
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: #111827;
+  color: #e4e4e4;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input::placeholder {
+  color: #6b7280;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.2);
+}
+
+.form-group select option {
+  background-color: #1f2937;
+  color: #e4e4e4;
+}
+
+/* Button Styles */
+.btn {
+  padding: 12px 24px;
+  background-color: #166534;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  background-color: #15803d;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 101, 52, 0.4);
+}
+
+.btn:disabled {
+  background-color: #374151;
+  color: #6b7280;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-refresh {
+  background-color: #475569;
+  margin-bottom: 10px;
+}
+
+.btn-refresh:hover {
+  background-color: #64748b;
+}
+
+.btn-status {
+  padding: 6px 12px;
+  margin: 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.btn-memuat {
+  background-color: #d97706;
+}
+.btn-memuat:hover {
+  background-color: #f59e0b;
+}
+
+.btn-mengirim {
+  background-color: #2563eb;
+}
+.btn-mengirim:hover {
+  background-color: #3b82f6;
+}
+
+.btn-tiba {
+  background-color: #059669;
+}
+.btn-tiba:hover {
+  background-color: #10b981;
+}
+
+/* Status Badge Styles */
+.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: bold;
+  display: inline-block;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-MENUNGGU {
+  background-color: #fbbf24;
+  color: #1f2937;
+}
+
+.status-MEMUAT {
+  background-color: #f97316;
+  color: white;
+}
+
+.status-MENGIRIM {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.status-TIBA {
+  background-color: #10b981;
+  color: white;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 12px 16px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.alert-success {
+  background-color: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid #10b981;
+}
+
+.alert-error {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid #ef4444;
+}
+
+/* Status Text */
+.bertugas-ya {
+  color: #10b981;
+  font-weight: bold;
+}
+
+.bertugas-tidak {
+  color: #6b7280;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #9ca3af;
+}
+
+/* Scrollbar styling for dark theme */
+.pengiriman-container ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.pengiriman-container ::-webkit-scrollbar-track {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+.pengiriman-container ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+.pengiriman-container ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}

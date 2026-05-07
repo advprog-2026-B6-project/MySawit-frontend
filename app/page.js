@@ -1,39 +1,110 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 export default function Home() {
   const [msg, setMsg] = useState("Loading...");
+  const [authRole, setAuthRole] = useState(null);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hello`)
-      .then((res) => res.json())
-      .then((data) =>
-        setMsg(data?.message ?? "If you see this, something failed!!!"),
-      );
+    // TODO: Move JWT parsing into an auth module/context when the shared auth layer is available.
+    const token = localStorage.getItem("token");
+    // setAuthRole(parseRoleFromToken(token));
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setAuthRole(null);
   };
+
+  // subject for removal? udah ada login regist baru
+  // const showPublicActions = !authRole;
+  const showBuruhActions = authRole === "BURUH";
+  const showMandorActions = authRole === "MANDOR";
 
   return (
     <div>
-      <div>fetched message : {msg}</div>
+      <div className="w-full h-16 bg-primary flex justify-between px-10 py-5 text-white">
+        <div>MySawit</div>
+        <div className="flex gap-8">
+          <Link href="/kebun">manajemen kebun</Link>
+          <Link href="/pembayaran/me">manajemen pembayaran</Link>
+          <Link href="/buruh/hasil">manajemen hasil</Link>
+          <Link href="/pengiriman">manajemen pengiriman</Link>
+        </div>
+      </div>
 
-      <div> CI will be ignored for now as its asking for coverage</div>
+      <div className="flex-col justify-center items-center">
+        <div className="flex justify-center items-center">
+          <div className="flex flex-col gap-8">
+            <div className="text-4xl font-bold">MySawit</div>
+            <div className="max-w-[50ch]">
+              Custom sawit farm management app. Features include role based
+              authentication and field, haul, delivery, and payment management.
+              Adpro kelompok B6. Authentication - Daffa Ismail | Kebun - Felesia
+              Junelus | Hasil - Farrel Rifqi Bagaskoro | Pengiriman - Aufa Daffa
+              Satriatama | Pembayaran - Firos Aqiela Zufa
+            </div>
+            <div className="flex gap-4 justify-center">
+              <Link href="/login">
+                <Button className="px-8 py-5">Login</Button>
+              </Link>
+              <Link href="/register">
+                <Button className="px-8 py-5">Register</Button>
+              </Link>
+            </div>
+          </div>
+          <div className="relative size-160 shrink-0">
+            <Image src="/panda.png" alt="" fill className="object-contain" />
+          </div>
+        </div>
+      </div>
+
+      {authRole ? <Button onClick={handleLogout}>Logout</Button> : null}
 
       <div className="text-white underline space-x-10 my-10">
-        <Link href="/login">
-          <Button>Login</Button>
-        </Link>
-        <Link href="/register">
-          <Button>Register</Button>
-        </Link>
-        <Button onClick={handleLogout}>Logout</Button>
+        {showBuruhActions ? (
+          <>
+            <Link href="/buruh/hasil">
+              <Button>Form Hasil Panen Buruh</Button>
+            </Link>
+            <Link href="/buruh/riwayat">
+              <Button>Riwayat Panen Buruh</Button>
+            </Link>
+          </>
+        ) : null}
+
+        {showMandorActions ? (
+          <>
+            <Link href="/mandor/riwayat">
+              <Button>Riwayat Panen Mandor</Button>
+            </Link>
+          </>
+        ) : null}
       </div>
     </div>
   );
+}
+
+function parseRoleFromToken(token) {
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const payloadPart = token.split(".")[1];
+    if (!payloadPart) {
+      return null;
+    }
+
+    const normalizedPayload = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
+    const decodedPayload = atob(normalizedPayload);
+    const payload = JSON.parse(decodedPayload);
+    return payload?.role ?? null;
+  } catch {
+    return null;
+  }
 }
