@@ -30,10 +30,10 @@ export default function Home() {
       <div className="w-full h-16 bg-primary flex justify-between px-10 py-5 text-white">
         <div>MySawit</div>
         <div className="flex gap-8">
-          <Link href="/1">module 1</Link>
-          <Link href="/2">module 2</Link>
-          <Link href="/3">module 3</Link>
-          <Link href="/4">module 4</Link>
+          <Link href="/kebun">manajemen kebun</Link>
+          <Link href="/pembayaran/me">manajemen pembayaran</Link>
+          <Link href="/buruh/hasil">manajemen hasil</Link>
+          <Link href="/pengiriman">manajemen pengiriman</Link>
         </div>
       </div>
 
