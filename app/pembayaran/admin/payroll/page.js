@@ -35,7 +35,6 @@ export default function AdminPayrollPage() {
     const [loadingCreate, setLoadingCreate] = useState(false);
     const [createMessage, setCreateMessage] = useState({ type: "", text: "" });
 
-    // --- LOGIKA PROTEKSI ROUTE DIMULAI DI SINI ---
     useEffect(() => {
         const token = localStorage.getItem("token");
 
@@ -45,10 +44,8 @@ export default function AdminPayrollPage() {
         }
 
         try {
-            // Decode payload JWT (bagian tengah)
             const payload = JSON.parse(atob(token.split('.')[1]));
 
-            // Cek role
             if (payload.role !== "ADMIN") {
                 alert("Akses ditolak! Halaman ini khusus Admin.");
                 router.push("/"); // Tendang balik ke beranda / halaman pekerja
@@ -61,7 +58,6 @@ export default function AdminPayrollPage() {
             router.push("/login");
         }
     }, [router]);
-    // --- LOGIKA PROTEKSI ROUTE SELESAI ---
 
     const handleSearch = async (e) => {
         e.preventDefault();
@@ -80,7 +76,6 @@ export default function AdminPayrollPage() {
             if (startDate) queryParams.append("startDate", startDate);
             if (endDate) queryParams.append("endDate", endDate);
 
-            // Perhatikan URL di sini ada /p/admin, pastikan ini sesuai dengan controller backend-mu
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/user/${searchUsername}?${queryParams.toString()}`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
