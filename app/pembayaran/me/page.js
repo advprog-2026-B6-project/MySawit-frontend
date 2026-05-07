@@ -10,7 +10,7 @@ export default function WorkerPayrollPage() {
     const [payrolls, setPayrolls] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    
+
     const [filters, setFilters] = useState({
         startDate: "",
         endDate: "",
@@ -32,7 +32,7 @@ export default function WorkerPayrollPage() {
             if (filters.endDate) queryParams.append("endDate", filters.endDate);
             if (filters.status) queryParams.append("status", filters.status);
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payroll/me?${queryParams.toString()}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/payroll/me?${queryParams.toString()}`, {
                 headers: {
                     "Authorization": `Bearer ${token}`
                 }
@@ -186,59 +186,59 @@ export default function WorkerPayrollPage() {
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead>
-                                <tr className="bg-gray-50">
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        ID Pembayaran
-                                    </th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Tanggal
-                                    </th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Total Upah
-                                    </th>
-                                    <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                </tr>
+                            <tr className="bg-gray-50">
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    ID Pembayaran
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Tanggal
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Total Upah
+                                </th>
+                                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                            </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-100">
-                                {payrolls.length === 0 && !loading ? (
-                                    <tr>
-                                        <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
-                                            <div className="flex flex-col items-center">
-                                                <DollarSign className="w-12 h-12 text-gray-300 mb-3" />
-                                                <p className="text-lg font-medium text-gray-900">Belum ada riwayat gaji</p>
-                                                <p className="text-sm">Tidak ditemukan data payroll dengan filter tersebut.</p>
+                            {payrolls.length === 0 && !loading ? (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
+                                        <div className="flex flex-col items-center">
+                                            <DollarSign className="w-12 h-12 text-gray-300 mb-3" />
+                                            <p className="text-lg font-medium text-gray-900">Belum ada riwayat gaji</p>
+                                            <p className="text-sm">Tidak ditemukan data payroll dengan filter tersebut.</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                payrolls.map((pr) => (
+                                    <tr key={pr.id} className="hover:bg-gray-50/80 transition-colors group">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm font-medium text-gray-900">
+                                                #{pr.id.substring(0,8)}...
                                             </div>
                                         </td>
-                                    </tr>
-                                ) : (
-                                    payrolls.map((pr) => (
-                                        <tr key={pr.id} className="hover:bg-gray-50/80 transition-colors group">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm font-medium text-gray-900">
-                                                    #{pr.id.substring(0,8)}...
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="text-sm text-gray-600">
-                                                    {pr.date ? format(new Date(pr.date), 'dd MMM yyyy') : '-'}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap group-hover:text-green-700 transition-colors">
-                                                <div className="text-sm font-semibold text-gray-900">
-                                                    Rp {pr.totalAmount?.toLocaleString('id-ID')}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="text-sm text-gray-600">
+                                                {pr.date ? format(new Date(pr.date), 'dd MMM yyyy') : '-'}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap group-hover:text-green-700 transition-colors">
+                                            <div className="text-sm font-semibold text-gray-900">
+                                                Rp {pr.totalAmount?.toLocaleString('id-ID')}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyle(pr.status)} animate-in zoom-in-95 duration-200`}>
                                                     {getStatusIcon(pr.status)}
                                                     {pr.status}
                                                 </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                             </tbody>
                         </table>
                     </div>
