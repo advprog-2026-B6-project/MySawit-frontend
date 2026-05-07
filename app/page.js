@@ -20,7 +20,8 @@ export default function Home() {
     setAuthRole(null);
   };
 
-  const showPublicActions = !authRole;
+  // subject for removal? udah ada login regist baru
+  // const showPublicActions = !authRole;
   const showBuruhActions = authRole === "BURUH";
   const showMandorActions = authRole === "MANDOR";
 
@@ -65,17 +66,6 @@ export default function Home() {
       {authRole ? <Button onClick={handleLogout}>Logout</Button> : null}
 
       <div className="text-white underline space-x-10 my-10">
-        {showPublicActions ? (
-          <>
-            <Link href="/login">
-              <Button>Login</Button>
-            </Link>
-            <Link href="/register">
-              <Button>Register</Button>
-            </Link>
-          </>
-        ) : null}
-
         {showBuruhActions ? (
           <>
             <Link href="/buruh/hasil">
