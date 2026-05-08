@@ -19,11 +19,13 @@ describe("AdminPayrollPage", () => {
         localStorage.clear();
         global.fetch = jest.fn();
         alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+        jest.spyOn(console, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
         jest.clearAllMocks();
         alertMock.mockRestore();
+        console.error.mockRestore();
     });
 
     const createToken = (role) => {
