@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import AdminTab from "./components/AdminTab";
 import MandorTab from "./components/MandorTab";
 import SupirTab from "./components/SupirTab";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ export default function PengirimanPage() {
     const storedRole = localStorage.getItem("userRole");
     let name = storedName || "Pengguna";
     let role = storedRole ? storedRole.toUpperCase() : "";
-    let tab = role === "SUPIR" ? "supir" : "mandor";
+  let tab = role === "SUPIR" ? "supir" : role === "ADMIN" ? "admin" : "mandor";
 
     if (!storedName || !storedRole) {
       const token = localStorage.getItem("token");
@@ -34,7 +35,7 @@ export default function PengirimanPage() {
             if (!storedRole && tokenRole) {
               const normalized = String(tokenRole).toUpperCase();
               role = normalized;
-              tab = normalized === "SUPIR" ? "supir" : "mandor";
+              tab = normalized === "SUPIR" ? "supir" : normalized === "ADMIN" ? "admin" : "mandor";
               localStorage.setItem("userRole", normalized);
             }
           }
@@ -55,6 +56,7 @@ export default function PengirimanPage() {
   const normalizedRole = useMemo(() => currentRole?.toUpperCase(), [currentRole]);
   const isMandor = normalizedRole === "MANDOR";
   const isSupir = normalizedRole === "SUPIR";
+  const isAdmin = normalizedRole === "ADMIN";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -78,7 +80,7 @@ export default function PengirimanPage() {
           </div>
         </div>
 
-        {!isMandor && !isSupir && (
+        {!isMandor && !isSupir && !isAdmin && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-muted-foreground">
               Pilih tampilan:
@@ -105,12 +107,30 @@ export default function PengirimanPage() {
             >
               Supir Truk
             </Button>
+            <Button
+              variant={activeTab === "admin" ? "default" : "secondary"}
+              onClick={() => {
+                setActiveTab("admin");
+                setCurrentRole("ADMIN");
+                localStorage.setItem("userRole", "ADMIN");
+              }}
+              data-testid="tab-admin"
+            >
+              Admin Utama
+            </Button>
           </div>
         )}
 
         <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
-          {(isMandor || (!isMandor && !isSupir && activeTab === "mandor")) && <MandorTab />}
-          {(isSupir || (!isMandor && !isSupir && activeTab === "supir")) && <SupirTab />}
+          {(isMandor || (!isMandor && !isSupir && !isAdmin && activeTab === "mandor")) && (
+            <MandorTab />
+          )}
+          {(isSupir || (!isMandor && !isSupir && !isAdmin && activeTab === "supir")) && (
+            <SupirTab />
+          )}
+          {(isAdmin || (!isMandor && !isSupir && !isAdmin && activeTab === "admin")) && (
+            <AdminTab />
+          )}
         </div>
       </div>
     </div>

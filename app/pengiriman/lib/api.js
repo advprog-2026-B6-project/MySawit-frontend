@@ -74,6 +74,22 @@ export async function rejectPengiriman(pengirimanId, mandorId, alasanPenolakan) 
   return response.json();
 }
 
+export async function fetchPengirimanDisetujui({
+  mandorName,
+  tanggalMulai,
+  tanggalSelesai,
+} = {}) {
+  const params = new URLSearchParams();
+  if (mandorName) params.append('mandorName', mandorName);
+  if (tanggalMulai) params.append('tanggalMulai', tanggalMulai);
+  if (tanggalSelesai) params.append('tanggalSelesai', tanggalSelesai);
+
+  const query = params.toString();
+  const url = `${API_BASE_URL}/api/admin/pengiriman/approved${query ? `?${query}` : ''}`;
+  const response = await fetch(url);
+  return response.json();
+}
+
 export function formatDate(dateString) {
   if (!dateString) return '-';
   const date = new Date(dateString);
