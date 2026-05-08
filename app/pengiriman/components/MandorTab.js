@@ -103,7 +103,8 @@ export default function MandorTab() {
     try {
       const result = await approvePengiriman(pengirimanId, Number(mandorId));
       if (result.success) {
-        showAlert("Pengiriman berhasil disetujui!");
+        showAlert(
+          "Pengiriman berhasil disetujui! Permintaan payroll supir akan dikirim secara asinkronus.")
         loadPengirimanBerlangsung();
       } else {
         showAlert(result.message || "Gagal menyetujui pengiriman", "error");

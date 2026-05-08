@@ -1,23 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import MandorTab from "./components/MandorTab";
 import SupirTab from "./components/SupirTab";
 import { Button } from "@/components/ui/button";
 
 export default function PengirimanPage() {
-  const [activeTab, setActiveTab] = useState("mandor");
-  const [currentName, setCurrentName] = useState("Pengguna");
-  const [currentRole, setCurrentRole] = useState("");
+  const getInitialUser = () => {
+    if (typeof window === "undefined") {
+      return { name: "Pengguna", role: "", tab: "mandor" };
+    }
 
-  useEffect(() => {
     const storedName = localStorage.getItem("userName") || localStorage.getItem("username");
     const storedRole = localStorage.getItem("userRole");
-    if (storedName) setCurrentName(storedName);
-    if (storedRole) {
-      setCurrentRole(storedRole.toUpperCase());
-      setActiveTab(storedRole.toUpperCase() === "SUPIR" ? "supir" : "mandor");
-    }
+    let name = storedName || "Pengguna";
+    let role = storedRole ? storedRole.toUpperCase() : "";
+    let tab = role === "SUPIR" ? "supir" : "mandor";
 
     if (!storedName || !storedRole) {
       const token = localStorage.getItem("token");
@@ -30,13 +28,13 @@ export default function PengirimanPage() {
               parsed.fullname || parsed.fullName || parsed.name || parsed.username || parsed.sub;
             const tokenRole = parsed.role || parsed.roles?.[0] || parsed.authority;
             if (!storedName && tokenName) {
-              setCurrentName(tokenName);
+              name = tokenName;
               localStorage.setItem("userName", tokenName);
             }
             if (!storedRole && tokenRole) {
               const normalized = String(tokenRole).toUpperCase();
-              setCurrentRole(normalized);
-              setActiveTab(normalized === "SUPIR" ? "supir" : "mandor");
+              role = normalized;
+              tab = normalized === "SUPIR" ? "supir" : "mandor";
               localStorage.setItem("userRole", normalized);
             }
           }
@@ -45,7 +43,14 @@ export default function PengirimanPage() {
         }
       }
     }
-  }, []);
+
+    return { name, role, tab };
+  };
+
+  const initialUser = useMemo(() => getInitialUser(), []);
+  const [activeTab, setActiveTab] = useState(initialUser.tab);
+  const [currentName, setCurrentName] = useState(initialUser.name);
+  const [currentRole, setCurrentRole] = useState(initialUser.role);
 
   const normalizedRole = useMemo(() => currentRole?.toUpperCase(), [currentRole]);
   const isMandor = normalizedRole === "MANDOR";
