@@ -1,6 +1,5 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import WorkerPayrollPage from "../app/pembayaran/me/page";
 import { useRouter } from "next/navigation";
 
@@ -10,6 +9,11 @@ jest.mock("next/navigation", () => ({
 
 describe("WorkerPayrollPage (Me)", () => {
     let mockRouter;
+
+    const createToken = (role) => {
+        const payload = Buffer.from(JSON.stringify({ role })).toString("base64url");
+        return `header.${payload}.signature`;
+    };
 
     beforeEach(() => {
         mockRouter = { push: jest.fn() };
@@ -29,13 +33,14 @@ describe("WorkerPayrollPage (Me)", () => {
     });
 
     test("fetches and displays payroll data when token exists", async () => {
-        localStorage.setItem("token", "dummy-token");
+        const validToken = createToken("BURUH");
+        localStorage.setItem("token", validToken);
 
         const mockPayrolls = [
             {
-                id: "123",
-                date: "2023-10-01T00:00:00Z",
-                totalAmount: 150000,
+                id: 123,
+                createdAt: "2023-10-01T00:00:00Z",
+                totalWage: 150000,
                 status: "PAID",
             },
         ];
@@ -53,7 +58,7 @@ describe("WorkerPayrollPage (Me)", () => {
             expect(global.fetch).toHaveBeenCalledWith(
                 "http://localhost:8080/pembayaran/payroll/me?",
                 expect.objectContaining({
-                    headers: { Authorization: "Bearer dummy-token" },
+                    headers: { Authorization: `Bearer ${validToken}` },
                 })
             );
         });
@@ -61,13 +66,13 @@ describe("WorkerPayrollPage (Me)", () => {
         await waitFor(() => {
             expect(screen.getByText(/#123/)).toBeInTheDocument();
             expect(screen.getByText(/01 Oct 2023/)).toBeInTheDocument();
-            expect(screen.getByText("Rp 150.000")).toBeInTheDocument();
+            expect(screen.getByText(/Rp 150\.000/)).toBeInTheDocument();
             expect(screen.getByText("PAID")).toBeInTheDocument();
         });
     });
 
     test("shows error message when fetch fails", async () => {
-        localStorage.setItem("token", "dummy-token");
+        localStorage.setItem("token", createToken("BURUH"));
 
         global.fetch.mockResolvedValueOnce({
             ok: false,
@@ -83,7 +88,9 @@ describe("WorkerPayrollPage (Me)", () => {
     });
 
     test("applies filters correctly", async () => {
-        localStorage.setItem("token", "dummy-token");
+        const validToken = createToken("BURUH");
+        localStorage.setItem("token", validToken);
+
         global.fetch.mockResolvedValue({
             ok: true,
             json: jest.fn().mockResolvedValue([]),

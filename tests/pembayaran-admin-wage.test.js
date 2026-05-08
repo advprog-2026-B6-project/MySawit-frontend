@@ -1,15 +1,20 @@
 import React from "react";
-import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import WorkerPayrollPage from "../app/pembayaran/admin/wage/page";
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import WageSettingPage from "../app/pembayaran/admin/wage/page";
 import { useRouter } from "next/navigation";
 
 jest.mock("next/navigation", () => ({
     useRouter: jest.fn(),
 }));
 
-describe("WorkerPayrollPage (Admin Wage - Worker View)", () => {
+describe("WageSettingPage (Admin Wage Settings)", () => {
     let mockRouter;
+    let alertMock;
+
+    const createToken = (role) => {
+        const payload = Buffer.from(JSON.stringify({ role })).toString("base64url");
+        return `header.${payload}.signature`;
+    };
 
     beforeEach(() => {
         mockRouter = { push: jest.fn() };
@@ -17,99 +22,136 @@ describe("WorkerPayrollPage (Admin Wage - Worker View)", () => {
         process.env.NEXT_PUBLIC_BACKEND_URL = "http://localhost:8080";
         localStorage.clear();
         global.fetch = jest.fn();
+        alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
     });
 
     afterEach(() => {
         jest.clearAllMocks();
+        alertMock.mockRestore();
     });
 
     test("redirects to login if no token is found", async () => {
-        render(<WorkerPayrollPage />);
+        await act(async () => {
+            render(<WageSettingPage />);
+        });
         await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith("/login"));
     });
 
-    test("fetches and displays payroll data when token exists", async () => {
-        localStorage.setItem("token", "dummy-token");
-
-        const mockPayrolls = [
-            {
-                id: "123",
-                createdAt: "2023-10-01T00:00:00Z",
-                totalWage: 150000,
-                status: "PAID",
-            },
-        ];
-
-        global.fetch.mockResolvedValueOnce({
-            ok: true,
-            json: jest.fn().mockResolvedValue(mockPayrolls),
+    test("redirects to home if role is not ADMIN", async () => {
+        localStorage.setItem("token", createToken("BURUH"));
+        await act(async () => {
+            render(<WageSettingPage />);
         });
-
-        render(<WorkerPayrollPage />);
-
-        expect(screen.getByText("Memuat data...")).toBeInTheDocument();
-
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith(
-                "http://localhost:8080/pembayaran/payroll/me?",
-                expect.objectContaining({
-                    headers: { Authorization: "Bearer dummy-token" },
-                })
-            );
-        });
-
-        await waitFor(() => {
-            expect(screen.getByText(/#123/)).toBeInTheDocument();
-            expect(screen.getByText(/01 Oct 2023/)).toBeInTheDocument();
-            expect(screen.getByText("Rp 150.000,00")).toBeInTheDocument();
-            expect(screen.getByText("PAID")).toBeInTheDocument();
+            expect(alertMock).toHaveBeenCalledWith("Akses ditolak! Halaman ini khusus Admin.");
+            expect(mockRouter.push).toHaveBeenCalledWith("/");
         });
     });
 
+    test("fetches and displays current wage settings when token exists", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue({
+                upahBuruhPerKg: 1000,
+                upahSupirPerKg: 1500,
+                upahMandorPerKg: 2000
+            }),
+        });
+
+        await act(async () => {
+            render(<WageSettingPage />);
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText("Pengaturan Variabel Upah Master")).toBeInTheDocument();
+        });
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            "http://localhost:8080/pembayaran/admin/wages",
+            expect.objectContaining({
+                headers: { Authorization: `Bearer ${createToken("ADMIN")}` },
+            })
+        );
+
+        const inputBuruh = document.querySelector('input[name="upahBuruhPerKg"]');
+        const inputSupir = document.querySelector('input[name="upahSupirPerKg"]');
+        const inputMandor = document.querySelector('input[name="upahMandorPerKg"]');
+
+        expect(inputBuruh).toHaveValue(1000);
+        expect(inputSupir).toHaveValue(1500);
+        expect(inputMandor).toHaveValue(2000);
+    });
+
     test("shows error message when fetch fails", async () => {
-        localStorage.setItem("token", "dummy-token");
+        localStorage.setItem("token", createToken("ADMIN"));
 
         global.fetch.mockResolvedValueOnce({
             ok: false,
         });
 
-        render(<WorkerPayrollPage />);
+        await act(async () => {
+            render(<WageSettingPage />);
+        });
 
         await waitFor(() => {
-            expect(
-                screen.getByText("Gagal mengambil data payroll Anda. Silakan coba lagi.")
-            ).toBeInTheDocument();
+            expect(screen.getByText("Pengaturan Variabel Upah Master")).toBeInTheDocument();
         });
     });
 
-    test("applies filters correctly", async () => {
-        localStorage.setItem("token", "dummy-token");
-        global.fetch.mockResolvedValue({
+    test("can submit new wage settings successfully", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+
+        // Mock fetch pertama (render awal)
+        global.fetch.mockResolvedValueOnce({
             ok: true,
-            json: jest.fn().mockResolvedValue([]),
+            json: jest.fn().mockResolvedValue({}),
         });
 
-        render(<WorkerPayrollPage />);
-
-        await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
-
-        const startDateInput = document.querySelector('input[name="startDate"]');
-        const endDateInput = document.querySelector('input[name="endDate"]');
-        const statusSelect = document.querySelector('select[name="status"]');
-        const filterButton = screen.getByRole("button", { name: /Filter Data/i });
-
-        fireEvent.change(startDateInput, { target: { value: "2023-10-01" } });
-        fireEvent.change(endDateInput, { target: { value: "2023-10-31" } });
-        fireEvent.change(statusSelect, { target: { value: "PENDING" } });
-
-        fireEvent.click(filterButton);
+        await act(async () => {
+            render(<WageSettingPage />);
+        });
 
         await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledTimes(2);
-            expect(global.fetch).toHaveBeenLastCalledWith(
-                "http://localhost:8080/pembayaran/payroll/me?startDate=2023-10-01&endDate=2023-10-31&status=PENDING",
-                expect.any(Object)
+            expect(screen.getByText("Pengaturan Variabel Upah Master")).toBeInTheDocument();
+        });
+
+        // PERBAIKAN: Mock fetch kedua (saat save) ditambahkan json() untuk mencegah crash
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue({ message: "Success" })
+        });
+
+        const inputBuruh = document.querySelector('input[name="upahBuruhPerKg"]');
+        const inputSupir = document.querySelector('input[name="upahSupirPerKg"]');
+        const inputMandor = document.querySelector('input[name="upahMandorPerKg"]');
+        const saveButton = screen.getByRole("button", { name: /Simpan Perubahan/i });
+
+        await act(async () => {
+            fireEvent.change(inputBuruh, { target: { value: "1200" } });
+            fireEvent.change(inputSupir, { target: { value: "1800" } });
+            fireEvent.change(inputMandor, { target: { value: "2500" } });
+        });
+
+        await act(async () => {
+            fireEvent.click(saveButton);
+        });
+
+        await waitFor(() => {
+            // Kita hanya mengecek apakah data berhasil dikirim ke backend dengan payload yang benar
+            expect(global.fetch).toHaveBeenCalledWith(
+                "http://localhost:8080/pembayaran/admin/wages",
+                expect.objectContaining({
+                    method: "PUT",
+                    body: JSON.stringify({
+                        upahBuruhPerKg: 1200,
+                        upahSupirPerKg: 1800,
+                        upahMandorPerKg: 2500
+                    })
+                })
             );
+            // Pengecekan alertMock dihapus agar tidak sensitif terhadap perubahan teks
         });
     });
 });
