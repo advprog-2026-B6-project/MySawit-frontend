@@ -82,6 +82,7 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
             <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
             <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
             <th className="px-4 py-3 text-left font-semibold">Status</th>
+            <th className="px-4 py-3 text-left font-semibold">Alasan Penolakan</th>
             <th className="px-4 py-3 text-left font-semibold">Waktu Dibuat</th>
             <th className="px-4 py-3 text-left font-semibold">Ubah Status</th>
           </tr>
@@ -98,13 +99,16 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
                     {pengiriman.status}
                   </span>
                 </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {pengiriman.alasanPenolakan ? pengiriman.alasanPenolakan : "-"}
+                </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.waktuDibuat)}</td>
                 <td className="px-4 py-3">{getStatusButtons(pengiriman)}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="6" className="px-4 py-6 text-center text-sm text-muted-foreground">
+              <td colSpan="7" className="px-4 py-6 text-center text-sm text-muted-foreground">
                 Tidak ada pengiriman ditemukan
               </td>
             </tr>
