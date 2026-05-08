@@ -82,7 +82,6 @@ export default function WageSettingPage() {
 
         try {
             const token = localStorage.getItem("token");
-            // Perbaikan URL: Disamakan dengan saat fetch awal (/pembayaran/admin/wages)
             const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/wages`, {
                 method: "PUT",
                 headers: {

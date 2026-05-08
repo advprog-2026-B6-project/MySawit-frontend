@@ -217,17 +217,17 @@ export default function WorkerPayrollPage() {
                                     <tr key={pr.id} className="hover:bg-gray-50/80 transition-colors group">
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm font-medium text-gray-900">
-                                                #{pr.id.substring(0,8)}...
+                                                ##{pr.id}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="text-sm text-gray-600">
-                                                {pr.date ? format(new Date(pr.date), 'dd MMM yyyy') : '-'}
+                                                {pr.createdAt ? format(new Date(pr.createdAt), 'dd MMM yyyy') : '-'}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap group-hover:text-green-700 transition-colors">
                                             <div className="text-sm font-semibold text-gray-900">
-                                                Rp {pr.totalAmount?.toLocaleString('id-ID')}
+                                                Rp {(pr.totalWage ?? 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

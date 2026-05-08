@@ -48,9 +48,9 @@ export default function AdminPayrollPage() {
 
             if (payload.role !== "ADMIN") {
                 alert("Akses ditolak! Halaman ini khusus Admin.");
-                router.push("/"); // Tendang balik ke beranda / halaman pekerja
+                router.push("/");
             } else {
-                setIsAuthorized(true); // Izinkan render jika memang ADMIN
+                setIsAuthorized(true);
             }
         } catch (error) {
             console.error("Token tidak valid", error);
@@ -209,7 +209,6 @@ export default function AdminPayrollPage() {
         }
     };
 
-    // Mencegah halaman berkedip membocorkan UI Admin sebelum token selesai dicek
     if (!isAuthorized) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
@@ -362,9 +361,9 @@ export default function AdminPayrollPage() {
                                             <tr key={pr.id} className="hover:bg-gray-50/80 transition-colors group">
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{pr.id.toString().substring(0,8)}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{pr.username}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{pr.date ? format(new Date(pr.date), 'dd MMM yyyy') : '-'}</td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{pr.createdAt ? format(new Date(pr.createdAt), 'dd MMM yyyy') : '-'}</td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                                    Rp {pr.totalWage ? pr.totalWage.toLocaleString('id-ID', { minimumFractionDigits: 2 }) : pr.totalAmount?.toLocaleString('id-ID', { minimumFractionDigits: 2 })}
+                                                    Rp {(pr.totalWage ?? 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyle(pr.status)}`}>
