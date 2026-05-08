@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
+export default function FormBuatPengiriman({
+  supirList,
+  mandorId,
+  onMandorIdChange,
+  onSubmit,
+  loading,
+}) {
   const [formData, setFormData] = useState({
     supirTrukId: "",
     muatanKg: "",
@@ -26,6 +32,11 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    if (!mandorId?.trim()) {
+      setError("Mandor ID wajib diisi sebelum menugaskan supir.");
+      return;
+    }
+
     const muatan = parseFloat(formData.muatanKg);
     const validation = validateMuatan(muatan);
 
@@ -35,6 +46,7 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
     }
 
     onSubmit({
+      mandorId: Number(mandorId),
       supirTrukId: formData.supirTrukId,
       muatanKg: muatan,
       tujuan: formData.tujuan,
@@ -55,6 +67,20 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
           {error}
         </div>
       )}
+
+      <div className="space-y-2">
+        <Label htmlFor="mandorIdForm">Mandor ID</Label>
+        <Input
+          id="mandorIdForm"
+          name="mandorIdForm"
+          type="number"
+          placeholder="Masukkan Mandor ID"
+          value={mandorId}
+          onChange={(e) => onMandorIdChange?.(e.target.value)}
+          required
+          data-testid="input-mandor-id"
+        />
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="supirTrukId">Supir Truk</Label>

@@ -1,62 +1,106 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import AdminTab from "./components/AdminTab";
 import MandorTab from "./components/MandorTab";
 import SupirTab from "./components/SupirTab";
 import { Button } from "@/components/ui/button";
 
-export default function PengirimanPage() {
-  const getInitialUser = () => {
-    if (typeof window === "undefined") {
-      return { name: "Pengguna", role: "", tab: "mandor" };
-    }
+const DEFAULT_USER = { name: "Pengguna", role: "", tab: "mandor" };
+let cachedUserSnapshot = DEFAULT_USER;
 
-    const storedName = localStorage.getItem("userName") || localStorage.getItem("username");
-    const storedRole = localStorage.getItem("userRole");
-    let name = storedName || "Pengguna";
-    let role = storedRole ? storedRole.toUpperCase() : "";
+const isSameSnapshot = (nextSnapshot, prevSnapshot) =>
+  nextSnapshot.name === prevSnapshot.name &&
+  nextSnapshot.role === prevSnapshot.role &&
+  nextSnapshot.tab === prevSnapshot.tab;
+
+const getUserSnapshot = () => {
+  if (typeof window === "undefined") {
+    return cachedUserSnapshot;
+  }
+
+  const storedName = localStorage.getItem("userName") || localStorage.getItem("username");
+  const storedRole = localStorage.getItem("userRole");
+  let name = storedName || "Pengguna";
+  let role = storedRole ? storedRole.toUpperCase() : "";
   let tab = role === "SUPIR" ? "supir" : role === "ADMIN" ? "admin" : "mandor";
 
-    if (!storedName || !storedRole) {
-      const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const [, payload] = token.split(".");
-          if (payload) {
-            const parsed = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-            const tokenName =
-              parsed.fullname || parsed.fullName || parsed.name || parsed.username || parsed.sub;
-            const tokenRole = parsed.role || parsed.roles?.[0] || parsed.authority;
-            if (!storedName && tokenName) {
-              name = tokenName;
-              localStorage.setItem("userName", tokenName);
-            }
-            if (!storedRole && tokenRole) {
-              const normalized = String(tokenRole).toUpperCase();
-              role = normalized;
-              tab = normalized === "SUPIR" ? "supir" : normalized === "ADMIN" ? "admin" : "mandor";
-              localStorage.setItem("userRole", normalized);
-            }
+  if (!storedName || !storedRole) {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const [, payload] = token.split(".");
+        if (payload) {
+          const parsed = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+          const tokenName =
+            parsed.fullname || parsed.fullName || parsed.name || parsed.username || parsed.sub;
+          const tokenRole = parsed.role || parsed.roles?.[0] || parsed.authority;
+          if (!storedName && tokenName) {
+            name = tokenName;
+            localStorage.setItem("userName", tokenName);
           }
-        } catch {
-          // ignore invalid token payload
+          if (!storedRole && tokenRole) {
+            const normalized = String(tokenRole).toUpperCase();
+            role = normalized;
+            tab = normalized === "SUPIR" ? "supir" : normalized === "ADMIN" ? "admin" : "mandor";
+            localStorage.setItem("userRole", normalized);
+          }
         }
+      } catch {
+        // ignore invalid token payload
       }
     }
+  }
 
-    return { name, role, tab };
+  const nextSnapshot = { name, role, tab };
+  if (!isSameSnapshot(nextSnapshot, cachedUserSnapshot)) {
+    cachedUserSnapshot = nextSnapshot;
+  }
+
+  return cachedUserSnapshot;
+};
+
+const subscribeToUser = (callback) => {
+  if (typeof window === "undefined") {
+    return () => {};
+  }
+
+  const handler = () => callback();
+  window.addEventListener("storage", handler);
+  window.addEventListener("mysawit-user", handler);
+  return () => {
+    window.removeEventListener("storage", handler);
+    window.removeEventListener("mysawit-user", handler);
   };
+};
 
-  const initialUser = useMemo(() => getInitialUser(), []);
-  const [activeTab, setActiveTab] = useState(initialUser.tab);
-  const [currentName, setCurrentName] = useState(initialUser.name);
-  const [currentRole, setCurrentRole] = useState(initialUser.role);
+export default function PengirimanPage() {
+  const user = useSyncExternalStore(subscribeToUser, getUserSnapshot, () => DEFAULT_USER);
+  const [activeTab, setActiveTab] = useState("mandor");
+  const [isMounted, setIsMounted] = useState(false);
 
-  const normalizedRole = useMemo(() => currentRole?.toUpperCase(), [currentRole]);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isMounted) {
+      setActiveTab(user.tab);
+    }
+  }, [isMounted, user.tab]);
+
+  const displayUser = isMounted ? user : DEFAULT_USER;
+
+  const normalizedRole = useMemo(() => displayUser.role?.toUpperCase(), [displayUser.role]);
   const isMandor = normalizedRole === "MANDOR";
   const isSupir = normalizedRole === "SUPIR";
   const isAdmin = normalizedRole === "ADMIN";
+
+  const updateRole = (role, tab) => {
+    localStorage.setItem("userRole", role);
+    setActiveTab(tab);
+    window.dispatchEvent(new Event("mysawit-user"));
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -73,8 +117,10 @@ export default function PengirimanPage() {
           </div>
           <div className="rounded-lg border bg-card px-4 py-3 text-card-foreground shadow-sm">
             <p className="text-xs uppercase text-muted-foreground">User aktif</p>
-            <p className="text-sm font-semibold">{currentName}</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm font-semibold" suppressHydrationWarning>
+              {displayUser.name}
+            </p>
+            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
               Role: {normalizedRole || "Belum dipilih"}
             </p>
           </div>
@@ -87,33 +133,21 @@ export default function PengirimanPage() {
             </span>
             <Button
               variant={activeTab === "mandor" ? "default" : "secondary"}
-              onClick={() => {
-                setActiveTab("mandor");
-                setCurrentRole("MANDOR");
-                localStorage.setItem("userRole", "MANDOR");
-              }}
+              onClick={() => updateRole("MANDOR", "mandor")}
               data-testid="tab-mandor"
             >
               Mandor
             </Button>
             <Button
               variant={activeTab === "supir" ? "default" : "secondary"}
-              onClick={() => {
-                setActiveTab("supir");
-                setCurrentRole("SUPIR");
-                localStorage.setItem("userRole", "SUPIR");
-              }}
+              onClick={() => updateRole("SUPIR", "supir")}
               data-testid="tab-supir"
             >
               Supir Truk
             </Button>
             <Button
               variant={activeTab === "admin" ? "default" : "secondary"}
-              onClick={() => {
-                setActiveTab("admin");
-                setCurrentRole("ADMIN");
-                localStorage.setItem("userRole", "ADMIN");
-              }}
+              onClick={() => updateRole("ADMIN", "admin")}
               data-testid="tab-admin"
             >
               Admin Utama

@@ -77,9 +77,16 @@ export default function MandorTab() {
   }, []);
 
   const handleBuatPengiriman = async (data) => {
+    if (!mandorId.trim()) {
+      showAlert("Masukkan Mandor ID sebelum menugaskan supir", "error");
+      return;
+    }
     setLoadingForm(true);
     try {
-      const result = await buatPengiriman(data);
+      const result = await buatPengiriman({
+        ...data,
+        mandorId: Number(mandorId),
+      });
       if (result.success) {
         showAlert("Pengiriman berhasil dibuat!");
         loadSupirBertugas();
@@ -175,6 +182,8 @@ export default function MandorTab() {
         </div>
         <FormBuatPengiriman
           supirList={allSupir}
+          mandorId={mandorId}
+          onMandorIdChange={setMandorId}
           onSubmit={handleBuatPengiriman}
           loading={loadingForm}
         />

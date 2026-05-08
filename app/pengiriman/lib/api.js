@@ -1,77 +1,125 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8080';
+
+const getAuthHeaders = () => {
+  if (typeof window === 'undefined') return {};
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+const requestJson = async (url, options = {}) => {
+  const headers = {
+    ...(options.headers || {}),
+    ...getAuthHeaders(),
+  };
+
+  let response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message:
+        'Backend belum bisa dijangkau. Pastikan server backend berjalan di ' +
+        API_BASE_URL +
+        '.',
+      error: error?.message,
+    };
+  }
+
+  const text = await response.text();
+  let parsed = null;
+
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return {
+        success: false,
+        message: response.status === 403
+          ? 'Akses ditolak. Silakan login ulang.'
+          : 'Respons server tidak valid.',
+      };
+    }
+  }
+
+  if (!response.ok) {
+    return parsed || {
+      success: false,
+      message: response.status === 403
+        ? 'Akses ditolak. Silakan login ulang.'
+        : response.statusText || 'Request gagal.',
+    };
+  }
+
+  return parsed || { success: true, data: null };
+};
 
 export async function fetchSupirBertugas() {
-  const response = await fetch(`${API_BASE_URL}/api/supir-truk/bertugas`);
-  return response.json();
+  return requestJson(`${API_BASE_URL}/api/supir-truk/bertugas`);
 }
 
 export async function fetchAllSupir() {
-  const response = await fetch(`${API_BASE_URL}/api/supir-truk`);
-  return response.json();
+  return requestJson(`${API_BASE_URL}/api/supir-truk`);
 }
 
 export async function fetchSupirById(supirId) {
-  const response = await fetch(`${API_BASE_URL}/api/supir-truk/${supirId}`);
-  return response.json();
+  return requestJson(`${API_BASE_URL}/api/supir-truk/${supirId}`);
 }
 
 export async function fetchPengirimanBerlangsung() {
-  const response = await fetch(`${API_BASE_URL}/api/pengiriman/berlangsung`);
-  return response.json();
+  return requestJson(`${API_BASE_URL}/api/pengiriman/berlangsung`);
 }
 
 export async function fetchPengirimanSupir(supirId) {
-  const response = await fetch(`${API_BASE_URL}/api/pengiriman/supir/${supirId}`);
-  return response.json();
+  return requestJson(`${API_BASE_URL}/api/pengiriman/supir/${supirId}`);
 }
 
 export async function fetchPengirimanSupirTruk(supirId) {
-  const response = await fetch(`${API_BASE_URL}/api/supir-truk/${supirId}/pengiriman`);
-  return response.json();
+  return requestJson(`${API_BASE_URL}/api/supir-truk/${supirId}/pengiriman`);
 }
 
 export async function buatPengiriman(data) {
-  const response = await fetch(`${API_BASE_URL}/api/pengiriman`, {
+  return requestJson(`${API_BASE_URL}/api/pengiriman`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
   });
-  return response.json();
 }
 
 export async function ubahStatusPengiriman(pengirimanId, data) {
-  const response = await fetch(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/status`, {
+  return requestJson(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/status`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
   });
-  return response.json();
 }
 
 export async function approvePengiriman(pengirimanId, mandorId) {
-  const response = await fetch(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/approve`, {
+  return requestJson(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/approve`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ mandorId }),
   });
-  return response.json();
 }
 
 export async function rejectPengiriman(pengirimanId, mandorId, alasanPenolakan) {
-  const response = await fetch(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/reject`, {
+  return requestJson(`${API_BASE_URL}/api/pengiriman/${pengirimanId}/reject`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ mandorId, alasanPenolakan }),
   });
-  return response.json();
 }
 
 export async function fetchPengirimanDisetujui({
@@ -86,8 +134,7 @@ export async function fetchPengirimanDisetujui({
 
   const query = params.toString();
   const url = `${API_BASE_URL}/api/admin/pengiriman/approved${query ? `?${query}` : ''}`;
-  const response = await fetch(url);
-  return response.json();
+  return requestJson(url);
 }
 
 export function formatDate(dateString) {
