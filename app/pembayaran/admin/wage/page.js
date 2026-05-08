@@ -6,6 +6,7 @@ import { Settings, DollarSign, Save, ArrowLeft, CheckCircle, AlertCircle } from 
 
 export default function WageSettingPage() {
     const router = useRouter();
+    const [isAuthorized, setIsAuthorized] = useState(false); // State pelindung route
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState({ type: "", text: "" });
 
@@ -16,30 +17,53 @@ export default function WageSettingPage() {
     });
 
     useEffect(() => {
-        const fetchWages = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/wages`, {
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
-                });
+        const token = localStorage.getItem("token");
 
-                if (res.ok) {
-                    const data = await res.json();
-                    setForm({
-                        upahBuruhPerKg: data.upahBuruhPerKg || "",
-                        upahSupirPerKg: data.upahSupirPerKg || "",
-                        upahMandorPerKg: data.upahMandorPerKg || ""
-                    });
-                }
-            } catch (err) {
-                console.error("Gagal fetch data upah:", err);
+        if (!token) {
+            router.push("/login");
+            return;
+        }
+
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+
+            if (payload.role !== "ADMIN") {
+                alert("Akses ditolak! Halaman ini khusus Admin.");
+                router.push("/");
+                return;
             }
-        };
 
-        fetchWages();
-    }, []);
+            setIsAuthorized(true);
+
+            const fetchWages = async () => {
+                try {
+                    const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/wages`, {
+                        headers: {
+                            "Authorization": `Bearer ${token}`
+                        }
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        setForm({
+                            upahBuruhPerKg: data.upahBuruhPerKg || "",
+                            upahSupirPerKg: data.upahSupirPerKg || "",
+                            upahMandorPerKg: data.upahMandorPerKg || ""
+                        });
+                    }
+                } catch (err) {
+                    console.error("Gagal fetch data upah:", err);
+                }
+            };
+
+            fetchWages();
+
+        } catch (error) {
+            console.error("Token tidak valid", error);
+            localStorage.removeItem("token");
+            router.push("/login");
+        }
+    }, [router]);
 
     const handleChange = (e) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -58,7 +82,7 @@ export default function WageSettingPage() {
 
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/wages`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/wages`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -68,7 +92,7 @@ export default function WageSettingPage() {
             });
 
             if (!res.ok) {
-                setMessage({ type: "error", text: "Gagal memperbarui. Pastikan Anda login sebagai Admin Utama." });
+                setMessage({ type: "error", text: "Gagal memperbarui. Pastikan Anda memiliki akses Admin." });
                 setLoading(false);
                 return;
             }
@@ -80,6 +104,15 @@ export default function WageSettingPage() {
             setLoading(false);
         }
     };
+
+    if (!isAuthorized) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+                <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <p className="mt-4 text-gray-500 font-medium">Memverifikasi otorisasi...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col p-6 font-sans">
@@ -177,7 +210,7 @@ export default function WageSettingPage() {
                                 )}
                                 {loading ? "Menyimpan..." : "Simpan Perubahan"}
                             </button>
-                            
+
                             <button
                                 type="button"
                                 onClick={() => router.push("/")}
