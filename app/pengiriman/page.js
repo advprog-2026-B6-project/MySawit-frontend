@@ -1,31 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import AdminTab from "./components/AdminTab";
+import { useEffect, useMemo, useState } from "react";
 import MandorTab from "./components/MandorTab";
 import SupirTab from "./components/SupirTab";
+import AdminTab from "./components/AdminTab";
 import { Button } from "@/components/ui/button";
 
-const DEFAULT_USER = { name: "Pengguna", role: "", tab: "mandor" };
-let cachedUserSnapshot = DEFAULT_USER;
+export default function PengirimanPage() {
+  const [activeTab, setActiveTab] = useState("mandor");
+  const [currentName, setCurrentName] = useState("Pengguna");
+  const [currentRole, setCurrentRole] = useState("");
 
-const isSameSnapshot = (nextSnapshot, prevSnapshot) =>
-  nextSnapshot.name === prevSnapshot.name &&
-  nextSnapshot.role === prevSnapshot.role &&
-  nextSnapshot.tab === prevSnapshot.tab;
-
-const getUserSnapshot = () => {
-  if (typeof window === "undefined") {
-    return cachedUserSnapshot;
-  }
-
-  const storedName = localStorage.getItem("userName") || localStorage.getItem("username");
-  const storedRole = localStorage.getItem("userRole");
-  let name = storedName || "Pengguna";
-  let role = storedRole ? storedRole.toUpperCase() : "";
-  let tab = role === "SUPIR" ? "supir" : role === "ADMIN" ? "admin" : "mandor";
-
-  if (!storedName || !storedRole) {
+  useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
@@ -35,72 +21,44 @@ const getUserSnapshot = () => {
           const tokenName =
             parsed.fullname || parsed.fullName || parsed.name || parsed.username || parsed.sub;
           const tokenRole = parsed.role || parsed.roles?.[0] || parsed.authority;
-          if (!storedName && tokenName) {
-            name = tokenName;
+          if (tokenName) {
+            setCurrentName(tokenName);
             localStorage.setItem("userName", tokenName);
+            localStorage.setItem("username", parsed.username || parsed.sub || tokenName);
           }
-          if (!storedRole && tokenRole) {
+          if (tokenRole) {
             const normalized = String(tokenRole).toUpperCase();
-            role = normalized;
-            tab = normalized === "SUPIR" ? "supir" : normalized === "ADMIN" ? "admin" : "mandor";
+            setCurrentRole(normalized);
+            if (normalized === "SUPIR") setActiveTab("supir");
+            else if (normalized === "ADMIN") setActiveTab("admin");
+            else setActiveTab("mandor");
             localStorage.setItem("userRole", normalized);
           }
+          return;
         }
       } catch {
-        // ignore invalid token payload
+        // fallback to localStorage below
       }
     }
-  }
 
-  const nextSnapshot = { name, role, tab };
-  if (!isSameSnapshot(nextSnapshot, cachedUserSnapshot)) {
-    cachedUserSnapshot = nextSnapshot;
-  }
+    const storedName = localStorage.getItem("userName") || localStorage.getItem("username");
+    const storedRole = localStorage.getItem("userRole");
+    if (storedName) setCurrentName(storedName);
+    if (storedRole) {
+      setCurrentRole(storedRole.toUpperCase());
+      if (storedRole.toUpperCase() === "SUPIR") setActiveTab("supir");
+      else if (storedRole.toUpperCase() === "ADMIN") setActiveTab("admin");
+      else setActiveTab("mandor");
+    }
 
-  return cachedUserSnapshot;
-};
-
-const subscribeToUser = (callback) => {
-  if (typeof window === "undefined") {
-    return () => {};
-  }
-
-  const handler = () => callback();
-  window.addEventListener("storage", handler);
-  window.addEventListener("mysawit-user", handler);
-  return () => {
-    window.removeEventListener("storage", handler);
-    window.removeEventListener("mysawit-user", handler);
-  };
-};
-
-export default function PengirimanPage() {
-  const user = useSyncExternalStore(subscribeToUser, getUserSnapshot, () => DEFAULT_USER);
-  const [activeTab, setActiveTab] = useState("mandor");
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
+    // token-first flow handled above
   }, []);
 
-  useEffect(() => {
-    if (isMounted) {
-      setActiveTab(user.tab);
-    }
-  }, [isMounted, user.tab]);
-
-  const displayUser = isMounted ? user : DEFAULT_USER;
-
-  const normalizedRole = useMemo(() => displayUser.role?.toUpperCase(), [displayUser.role]);
+  const normalizedRole = useMemo(() => currentRole?.toUpperCase(), [currentRole]);
   const isMandor = normalizedRole === "MANDOR";
   const isSupir = normalizedRole === "SUPIR";
   const isAdmin = normalizedRole === "ADMIN";
-
-  const updateRole = (role, tab) => {
-    localStorage.setItem("userRole", role);
-    setActiveTab(tab);
-    window.dispatchEvent(new Event("mysawit-user"));
-  };
+  const isBuruh = normalizedRole === "BURUH";
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -117,54 +75,61 @@ export default function PengirimanPage() {
           </div>
           <div className="rounded-lg border bg-card px-4 py-3 text-card-foreground shadow-sm">
             <p className="text-xs uppercase text-muted-foreground">User aktif</p>
-            <p className="text-sm font-semibold" suppressHydrationWarning>
-              {displayUser.name}
-            </p>
-            <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+            <p className="text-sm font-semibold">{currentName}</p>
+            <p className="text-xs text-muted-foreground">
               Role: {normalizedRole || "Belum dipilih"}
             </p>
           </div>
         </div>
 
-        {!isMandor && !isSupir && !isAdmin && (
+        {!isMandor && !isSupir && !isAdmin && !isBuruh && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-muted-foreground">
               Pilih tampilan:
             </span>
             <Button
               variant={activeTab === "mandor" ? "default" : "secondary"}
-              onClick={() => updateRole("MANDOR", "mandor")}
+              onClick={() => {
+                setActiveTab("mandor");
+                setCurrentRole("MANDOR");
+                localStorage.setItem("userRole", "MANDOR");
+              }}
               data-testid="tab-mandor"
             >
               Mandor
             </Button>
             <Button
               variant={activeTab === "supir" ? "default" : "secondary"}
-              onClick={() => updateRole("SUPIR", "supir")}
+              onClick={() => {
+                setActiveTab("supir");
+                setCurrentRole("SUPIR");
+                localStorage.setItem("userRole", "SUPIR");
+              }}
               data-testid="tab-supir"
             >
               Supir Truk
             </Button>
             <Button
               variant={activeTab === "admin" ? "default" : "secondary"}
-              onClick={() => updateRole("ADMIN", "admin")}
+              onClick={() => {
+                setActiveTab("admin");
+                setCurrentRole("ADMIN");
+                localStorage.setItem("userRole", "ADMIN");
+              }}
               data-testid="tab-admin"
             >
-              Admin Utama
+              Admin
             </Button>
           </div>
         )}
 
         <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
-          {(isMandor || (!isMandor && !isSupir && !isAdmin && activeTab === "mandor")) && (
-            <MandorTab />
+          {isBuruh && (
+            <p className="text-sm text-muted-foreground">Tidak ada data pengiriman untuk role BURUH.</p>
           )}
-          {(isSupir || (!isMandor && !isSupir && !isAdmin && activeTab === "supir")) && (
-            <SupirTab />
-          )}
-          {(isAdmin || (!isMandor && !isSupir && !isAdmin && activeTab === "admin")) && (
-            <AdminTab />
-          )}
+          {(isMandor || (!isMandor && !isSupir && !isAdmin && !isBuruh && activeTab === "mandor")) && <MandorTab />}
+          {(isSupir || (!isMandor && !isSupir && !isAdmin && !isBuruh && activeTab === "supir")) && <SupirTab />}
+          {(isAdmin || (!isMandor && !isSupir && !isAdmin && !isBuruh && activeTab === "admin")) && <AdminTab />}
         </div>
       </div>
     </div>

@@ -29,8 +29,9 @@ export default function TablePengirimanSupirReadonly({ data, loading }) {
             <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
             <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
             <th className="px-4 py-3 text-left font-semibold">Status</th>
+            <th className="px-4 py-3 text-left font-semibold">Approval</th>
+            <th className="px-4 py-3 text-left font-semibold">Note</th>
             <th className="px-4 py-3 text-left font-semibold">Waktu Dibuat</th>
-            <th className="px-4 py-3 text-left font-semibold">Waktu Diperbarui</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -45,13 +46,14 @@ export default function TablePengirimanSupirReadonly({ data, loading }) {
                     {pengiriman.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.waktuDibuat)}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.waktuDiperbarui)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.approval || "-"}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.note || "-"}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.createdAt)}</td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="6" className="px-4 py-6 text-center text-sm text-muted-foreground">
+              <td colSpan="7" className="px-4 py-6 text-center text-sm text-muted-foreground">
                 Belum ada pengiriman untuk supir ini
               </td>
             </tr>

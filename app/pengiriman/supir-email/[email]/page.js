@@ -6,43 +6,32 @@ import { useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Alert from "../../components/Alert";
 import TablePengirimanSupirReadonly from "../../components/TablePengirimanSupirReadonly";
-import { fetchMandorAssignmentsBySupirId, fetchSupirById } from "../../lib/api";
+import { fetchMandorSupirProfileByEmail } from "../../lib/api";
 
-export default function SupirProfilePage() {
-  const { id } = useParams();
-  const [supir, setSupir] = useState(null);
-  const [pengiriman, setPengiriman] = useState([]);
+export default function SupirProfileByEmailPage() {
+  const { email } = useParams();
+  const decodedEmail = decodeURIComponent(email || "");
+  const [profile, setProfile] = useState(null);
+  const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState({ message: "", type: "success" });
 
   useEffect(() => {
-    if (!id) return;
+    if (!decodedEmail) return;
     let active = true;
 
     const loadData = async () => {
       setLoading(true);
       try {
-        const [supirResult, pengirimanResult] = await Promise.all([
-          fetchSupirById(id),
-          fetchMandorAssignmentsBySupirId(id),
-        ]);
-
+        const result = await fetchMandorSupirProfileByEmail(decodedEmail);
         if (!active) return;
 
-        if (supirResult?.success) {
-          setSupir(supirResult.data);
+        if (result?.success) {
+          setProfile(result.data);
+          setAssignments(result.data?.assignments || []);
         } else {
           setAlert({
-            message: supirResult?.message || "Supir tidak ditemukan",
-            type: "error",
-          });
-        }
-
-        if (pengirimanResult?.success) {
-          setPengiriman(pengirimanResult.data || []);
-        } else if (pengirimanResult?.message) {
-          setAlert({
-            message: pengirimanResult.message,
+            message: result?.message || "Profil supir tidak ditemukan",
             type: "error",
           });
         }
@@ -58,11 +47,10 @@ export default function SupirProfilePage() {
     };
 
     loadData();
-
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [decodedEmail]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -70,7 +58,7 @@ export default function SupirProfilePage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">Profil Supir Truk</p>
-            <h1 className="text-2xl font-semibold">{supir?.nama ?? "Detail Supir"}</h1>
+            <h1 className="text-2xl font-semibold">{profile?.username ?? "Detail Supir"}</h1>
           </div>
           <Button asChild variant="secondary">
             <Link href="/pengiriman">Kembali ke Pengiriman</Link>
@@ -84,31 +72,15 @@ export default function SupirProfilePage() {
         />
 
         <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
-          <h2 className="text-lg font-semibold">Informasi Supir</h2>
+          <h2 className="text-lg font-semibold">Informasi Akun Supir</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs uppercase text-muted-foreground">ID Supir</p>
-              <p className="text-sm font-medium text-muted-foreground">{supir?.id ?? "-"}</p>
+              <p className="text-xs uppercase text-muted-foreground">Username</p>
+              <p className="text-sm font-medium">{profile?.username ?? "-"}</p>
             </div>
             <div>
-              <p className="text-xs uppercase text-muted-foreground">Nomor Telepon</p>
-              <p className="text-sm font-medium">{supir?.nomorTelepon ?? "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase text-muted-foreground">Plat Nomor Truk</p>
-              <p className="text-sm font-medium">{supir?.platNomorTruk ?? "-"}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase text-muted-foreground">Status Bertugas</p>
-              <span
-                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                  supir?.sedangBertugas
-                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {supir?.sedangBertugas ? "Bertugas" : "Tidak Bertugas"}
-              </span>
+              <p className="text-xs uppercase text-muted-foreground">Email</p>
+              <p className="text-sm font-medium">{profile?.email ?? "-"}</p>
             </div>
           </div>
         </div>
@@ -116,15 +88,15 @@ export default function SupirProfilePage() {
         <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-semibold">Pengiriman Supir</h2>
+              <h2 className="text-lg font-semibold">Assignment Pengiriman</h2>
               <p className="text-sm text-muted-foreground">
-                Daftar assignment pengiriman untuk supir ini.
+                Daftar assignment pengiriman supir ini.
               </p>
             </div>
             {loading && <span className="text-xs text-muted-foreground">Memuat...</span>}
           </div>
           <div className="mt-4">
-            <TablePengirimanSupirReadonly data={pengiriman} loading={loading} />
+            <TablePengirimanSupirReadonly data={assignments} loading={loading} />
           </div>
         </div>
       </div>
