@@ -63,7 +63,7 @@ export default function TablePengirimanBerlangsung({
         <thead className="bg-muted text-xs uppercase text-muted-foreground">
           <tr>
             <th className="px-4 py-3 text-left font-semibold">ID</th>
-            <th className="px-4 py-3 text-left font-semibold">Supir Email</th>
+            <th className="px-4 py-3 text-left font-semibold">Supir</th>
             <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
             <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
             <th className="px-4 py-3 text-left font-semibold">Status</th>

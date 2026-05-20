@@ -102,8 +102,7 @@ export default function TablePengirimanDisetujui({
           <tr>
             <th className="px-4 py-3 text-left font-semibold">ID Pengiriman</th>
             <th className="px-4 py-3 text-left font-semibold">Mandor</th>
-            <th className="px-4 py-3 text-left font-semibold">Mandor ID</th>
-            <th className="px-4 py-3 text-left font-semibold">Supir Truk ID</th>
+            <th className="px-4 py-3 text-left font-semibold">Supir</th>
             <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
             <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
             <th className="px-4 py-3 text-left font-semibold">Waktu Disetujui</th>
@@ -115,21 +114,19 @@ export default function TablePengirimanDisetujui({
           {data && data.length > 0 ? (
             data.map((pengiriman) => (
               <tr key={pengiriman.assignmentId ?? pengiriman.pengirimanId} className="hover:bg-muted/50">
-                <td className="px-4 py-3 text-xs text-muted-foreground">
+                <td className="px-4 py-3">
                   {pengiriman.pengirimanId}
                 </td>
                 <td className="px-4 py-3 font-medium">
                   {pengiriman.mandorName || "-"}
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
+                {/* <td className="px-4 py-3">
                   {pengiriman.mandorId ?? "-"}
-                </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {pengiriman.supirTrukId ?? "-"}
-                </td>
-                <td className="px-4 py-3 font-medium">{pengiriman.muatanKg} kg</td>
+                </td> */}
+                <td className="px-4 py-3">{pengiriman.supirEmail ?? "-"}</td>
+                <td className="px-4 py-3">{pengiriman.muatanKg} kg</td>
                 <td className="px-4 py-3">{pengiriman.tujuan}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
+                <td className="px-4 py-3">
                   {formatDate(pengiriman.waktuDisetujui)}
                 </td>
                 <td className="px-4 py-3">

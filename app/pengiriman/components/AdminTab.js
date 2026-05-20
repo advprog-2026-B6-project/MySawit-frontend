@@ -191,9 +191,9 @@ export default function AdminTab() {
           </div>
         </div>
 
-        <Button className="admin-tab__filter-btn" onClick={loadData} disabled={loading}>
+        {/* <Button className="admin-tab__filter-btn" onClick={loadData} disabled={loading}>
           {loading ? "Memuat..." : "Filter"}
-        </Button>
+        </Button> */}
       </section>
 
       <section className="admin-tab__table-wrap">

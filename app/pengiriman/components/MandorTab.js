@@ -163,7 +163,7 @@ export default function MandorTab() {
         onClose={() => setAlert({ message: "", type: "success" })}
       />
 
-      <section className="space-y-4">
+      {/* <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold">Daftar Supir Truk Bertugas</h2>
@@ -178,20 +178,7 @@ export default function MandorTab() {
           </Button>
         </div>
         <TableSupirBertugas data={supirBertugas} loading={loadingSupir} />
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold">Tugaskan Supir Truk</h2>
-          <p className="text-sm text-muted-foreground">Buat pengiriman baru dan atur muatan.</p>
-        </div>
-        <FormBuatPengiriman
-          supirList={supirList}
-          defaultMandorEmail={mandorEmail}
-          onSubmit={handleBuatPengiriman}
-          loading={loadingForm}
-        />
-      </section>
+      </section> */}
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -215,6 +202,21 @@ export default function MandorTab() {
           loadingApprovalId={loadingApproval}
         />
       </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Tugaskan Supir Truk</h2>
+          <p className="text-sm text-muted-foreground">Buat pengiriman baru dan atur muatan.</p>
+        </div>
+        <FormBuatPengiriman
+          supirList={supirList}
+          defaultMandorEmail={mandorEmail}
+          onSubmit={handleBuatPengiriman}
+          loading={loadingForm}
+        />
+      </section>
+
+
     </div>
   );
 }
