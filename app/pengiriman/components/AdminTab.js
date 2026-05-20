@@ -23,7 +23,6 @@ export default function AdminTab() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [actionLoadingKey, setActionLoadingKey] = useState(null);
-  const [lockedApproveIds, setLockedApproveIds] = useState([]);
   const [isPrimaryAdmin, setIsPrimaryAdmin] = useState(false);
   const [alert, setAlert] = useState({ message: "", type: "success" });
 
@@ -80,7 +79,6 @@ export default function AdminTab() {
       const result = await approveAssignmentFinalAdmin(assignmentId, adminId);
       if (result.success) {
         showAlert("Hasil pengiriman akhir disetujui. Payroll mandor diproses async.");
-        setLockedApproveIds((prev) => (prev.includes(assignmentId) ? prev : [...prev, assignmentId]));
         loadData();
       } else {
         showAlert(result.message || "Gagal menyetujui hasil pengiriman akhir", "error");
@@ -206,7 +204,6 @@ export default function AdminTab() {
           onRejectFinal={handleRejectFinal}
           onRejectPartial={handleRejectPartial}
           actionLoadingKey={actionLoadingKey}
-          lockedApproveIds={lockedApproveIds}
           isPrimaryAdmin={isPrimaryAdmin}
         />
       </section>

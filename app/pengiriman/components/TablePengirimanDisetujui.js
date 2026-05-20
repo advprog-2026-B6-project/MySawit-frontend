@@ -2,7 +2,7 @@
 
 import { formatDate } from "../lib/api";
 import { Button } from "@/components/ui/button";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 const statusBadge = (status) => {
   const styles = {
@@ -13,6 +13,21 @@ const statusBadge = (status) => {
 };
 
 const buildActionKey = (type, id) => `${type}:${id}`;
+
+const finalApprovalBadge = (approval) => {
+  const styles = {
+    APPROVED: "bg-emerald-500/10 text-emerald-700",
+    PARTIALLY_REJECTED: "bg-amber-500/10 text-amber-700",
+    REJECTED: "bg-red-500/10 text-red-700",
+  };
+  return styles[approval] ?? "bg-muted text-muted-foreground";
+};
+
+const formatFinalApproval = (approval) => {
+  if (!approval) return null;
+  if (approval === "PARTIALLY_REJECTED") return "PARTIALLY REJECTED";
+  return approval;
+};
 
 function ActionModal({
   open,
@@ -59,7 +74,6 @@ export default function TablePengirimanDisetujui({
   onRejectFinal,
   onRejectPartial,
   actionLoadingKey,
-  lockedApproveIds,
   isPrimaryAdmin,
 }) {
   const [rejectModal, setRejectModal] = useState({ open: false, assignmentId: null });
@@ -68,7 +82,6 @@ export default function TablePengirimanDisetujui({
   const [partialReason, setPartialReason] = useState("");
   const [partialKg, setPartialKg] = useState("");
 
-  const lockedApproveSet = useMemo(() => new Set(lockedApproveIds ?? []), [lockedApproveIds]);
   const partialKgNumber = Number(partialKg);
   const partialKgInvalid = !partialKgNumber || Number.isNaN(partialKgNumber) || partialKgNumber <= 0;
   const partialKgExceeds = Boolean(partialModal.muatanKg && partialKgNumber > partialModal.muatanKg);
@@ -135,54 +148,62 @@ export default function TablePengirimanDisetujui({
                     if (!canAct) {
                       return <span className="text-xs text-muted-foreground">ID assignment tidak tersedia</span>;
                     }
-                    const approveLocked = lockedApproveSet.has(assignmentId);
+                    const finalApproval = pengiriman.adminFinalApproval;
+                    const decisionLocked = Boolean(finalApproval);
                     const approveLoading = actionLoadingKey === buildActionKey("approve", assignmentId);
                     const rejectLoading = actionLoadingKey === buildActionKey("reject", assignmentId);
                     const partialLoading = actionLoadingKey === buildActionKey("partial", assignmentId);
 
                     return (
                       <div className="flex flex-col gap-2">
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="xs"
-                            onClick={() => onApproveFinal?.(assignmentId)}
-                            disabled={approveLoading || approveLocked}
+                        {decisionLocked ? (
+                          <span
+                            className={`inline-flex w-fit items-center rounded-full px-2.5 py-1 text-xs font-semibold ${finalApprovalBadge(
+                              finalApproval
+                            )}`}
                           >
-                            {approveLocked ? "Disetujui" : approveLoading ? "Memproses..." : "Setujui Akhir"}
-                          </Button>
-                          <Button
-                            size="xs"
-                            variant="outline"
-                            onClick={() => {
-                              setRejectModal({ open: true, assignmentId });
-                              setRejectReason("");
-                            }}
-                            disabled={rejectLoading}
-                          >
-                            {rejectLoading ? "Memproses..." : "Tolak"}
-                          </Button>
-                          {isPrimaryAdmin && assignmentId ? (
+                            {formatFinalApproval(finalApproval)}
+                          </span>
+                        ) : (
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               size="xs"
-                              variant="secondary"
-                              onClick={() => {
-                                setPartialModal({
-                                  open: true,
-                                  assignmentId,
-                                  muatanKg: pengiriman.muatanKg,
-                                });
-                                setPartialKg("");
-                                setPartialReason("");
-                              }}
-                              disabled={partialLoading}
+                              onClick={() => onApproveFinal?.(assignmentId)}
+                              disabled={approveLoading}
                             >
-                              {partialLoading ? "Memproses..." : "Tolak Parsial"}
+                              {approveLoading ? "Memproses..." : "Setujui Akhir"}
                             </Button>
-                          ) : null}
-                        </div>
-                        {approveLocked ? (
-                          <span className="text-xs text-muted-foreground">Aksi persetujuan sudah dikirim.</span>
-                        ) : null}
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              onClick={() => {
+                                setRejectModal({ open: true, assignmentId });
+                                setRejectReason("");
+                              }}
+                              disabled={rejectLoading}
+                            >
+                              {rejectLoading ? "Memproses..." : "Tolak"}
+                            </Button>
+                            {isPrimaryAdmin && assignmentId ? (
+                              <Button
+                                size="xs"
+                                variant="secondary"
+                                onClick={() => {
+                                  setPartialModal({
+                                    open: true,
+                                    assignmentId,
+                                    muatanKg: pengiriman.muatanKg,
+                                  });
+                                  setPartialKg("");
+                                  setPartialReason("");
+                                }}
+                                disabled={partialLoading}
+                              >
+                                {partialLoading ? "Memproses..." : "Tolak Parsial"}
+                              </Button>
+                            ) : null}
+                          </div>
+                        )}
                       </div>
                     );
                   })()}
