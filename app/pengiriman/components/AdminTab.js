@@ -2,18 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  approvePengirimanFinalAdmin,
+  approveAssignmentFinalAdmin,
+  fetchCurrentUser,
   fetchApprovedPengirimanAdmin,
-  fetchUserByUsername,
-  formatDate,
-  rejectPengirimanFinalAdmin,
-  rejectPengirimanFinalParsialAdmin,
+  rejectAssignmentFinalAdmin,
+  rejectAssignmentFinalParsialAdmin,
 } from "../lib/api";
 import Alert from "./Alert";
+import TablePengirimanDisetujui from "./TablePengirimanDisetujui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import "./AdminTab.css";
 
 export default function AdminTab() {
   const [adminId, setAdminId] = useState(null);
@@ -22,12 +22,9 @@ export default function AdminTab() {
   const [tanggalSelesai, setTanggalSelesai] = useState("");
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [loadingApproveId, setLoadingApproveId] = useState(null);
-  const [loadingRejectId, setLoadingRejectId] = useState(null);
-  const [rejectingId, setRejectingId] = useState(null);
-  const [rejectMode, setRejectMode] = useState("full");
-  const [alasanPenolakan, setAlasanPenolakan] = useState("");
-  const [muatanKgDiakui, setMuatanKgDiakui] = useState("");
+  const [actionLoadingKey, setActionLoadingKey] = useState(null);
+  const [lockedApproveIds, setLockedApproveIds] = useState([]);
+  const [isPrimaryAdmin, setIsPrimaryAdmin] = useState(false);
   const [alert, setAlert] = useState({ message: "", type: "success" });
 
   const showAlert = (message, type = "success") => {
@@ -35,35 +32,25 @@ export default function AdminTab() {
     setTimeout(() => setAlert({ message: "", type: "success" }), 5000);
   };
 
-  const startReject = (pengirimanId, mode) => {
-    setRejectingId(pengirimanId);
-    setRejectMode(mode);
-    setAlasanPenolakan("");
-    setMuatanKgDiakui("");
-  };
-
-  const cancelReject = () => {
-    setRejectingId(null);
-    setRejectMode("full");
-    setAlasanPenolakan("");
-    setMuatanKgDiakui("");
-  };
-
-  const resolveAdminId = useCallback(async () => {
-    const username = localStorage.getItem("username") || localStorage.getItem("userEmail");
-    if (!username) return;
-    const user = await fetchUserByUsername(username);
-    if (user?.id) setAdminId(user.id);
-  }, []);
-
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await fetchApprovedPengirimanAdmin({ mandorName, tanggalMulai, tanggalSelesai });
-      if (result.success) {
-        setData(result.data || []);
-      } else {
+      const result = await fetchApprovedPengirimanAdmin({
+        mandorQuery: mandorName,
+        tanggalMulai,
+        tanggalSelesai,
+      });
+      const rows = Array.isArray(result?.data)
+        ? result.data.map((item) => ({
+            ...item,
+            assignmentId: item?.assignmentId ?? item?.id ?? null,
+          }))
+        : [];
+      setData(rows);
+      if (result.success === false) {
         showAlert(result.message || "Gagal memuat data pengiriman", "error");
+      } else {
+        // keep UX parity with SupirTab: render data from 200 response directly
       }
     } catch (error) {
       showAlert("Gagal memuat data pengiriman: " + error.message, "error");
@@ -72,74 +59,96 @@ export default function AdminTab() {
     }
   }, [mandorName, tanggalMulai, tanggalSelesai]);
 
-  const handleApproveFinal = async (pengirimanId) => {
+  const resolveAdminId = useCallback(async () => {
+    const me = await fetchCurrentUser();
+    if (me?.id) {
+      setAdminId(me.id);
+    }
+    const roleValue = me?.role || me?.roles?.[0] || me?.authority || "";
+    const normalizedRole = String(roleValue).toUpperCase();
+    const primaryFlag = Boolean(me?.isPrimaryAdmin ?? me?.isSuperAdmin ?? me?.isPrimary);
+    setIsPrimaryAdmin(primaryFlag || normalizedRole.includes("ADMIN"));
+  }, []);
+
+  const handleApproveFinal = async (assignmentId) => {
     if (!adminId) {
-      showAlert("Admin ID tidak ditemukan. Silakan login ulang.", "error");
+      showAlert("Admin tidak terdeteksi. Silakan login ulang.", "error");
       return;
     }
-    setLoadingApproveId(pengirimanId);
+    setActionLoadingKey(`approve:${assignmentId}`);
     try {
-      const result = await approvePengirimanFinalAdmin(pengirimanId, adminId);
+      const result = await approveAssignmentFinalAdmin(assignmentId, adminId);
       if (result.success) {
-        showAlert("Pengiriman final disetujui. Payroll mandor diproses async.");
+        showAlert("Hasil pengiriman akhir disetujui. Payroll mandor diproses async.");
+        setLockedApproveIds((prev) => (prev.includes(assignmentId) ? prev : [...prev, assignmentId]));
         loadData();
       } else {
-        showAlert(result.message || "Gagal menyetujui pengiriman final", "error");
+        showAlert(result.message || "Gagal menyetujui hasil pengiriman akhir", "error");
       }
     } catch (error) {
-      showAlert("Gagal menyetujui pengiriman final: " + error.message, "error");
+      showAlert("Gagal menyetujui hasil pengiriman akhir: " + error.message, "error");
     } finally {
-      setLoadingApproveId(null);
+      setActionLoadingKey(null);
     }
   };
 
-  const handleRejectFinal = async (pengirimanId, muatanPengiriman) => {
+  const handleRejectFinal = async (assignmentId, reason) => {
     if (!adminId) {
-      showAlert("Admin ID tidak ditemukan. Silakan login ulang.", "error");
+      showAlert("Admin tidak terdeteksi. Silakan login ulang.", "error");
       return;
     }
-    if (!alasanPenolakan.trim()) {
+    if (!reason || !reason.trim()) {
       showAlert("Alasan penolakan wajib diisi.", "error");
       return;
     }
-    if (rejectMode === "partial") {
-      const kg = Number(muatanKgDiakui);
-      if (!Number.isFinite(kg) || kg <= 0) {
-        showAlert("Kilogram diakui harus lebih dari 0.", "error");
-        return;
-      }
-      if (kg >= Number(muatanPengiriman)) {
-        showAlert("Kilogram diakui harus lebih kecil dari muatan pengiriman.", "error");
-        return;
-      }
-    }
-
-    setLoadingRejectId(pengirimanId);
+    setActionLoadingKey(`reject:${assignmentId}`);
     try {
-      const result = rejectMode === "partial"
-        ? await rejectPengirimanFinalParsialAdmin(
-            pengirimanId,
-            adminId,
-            Number(muatanKgDiakui),
-            alasanPenolakan.trim(),
-          )
-        : await rejectPengirimanFinalAdmin(pengirimanId, adminId, alasanPenolakan.trim());
-
+      const result = await rejectAssignmentFinalAdmin(assignmentId, adminId, reason.trim());
       if (result.success) {
-        if (rejectMode === "partial") {
-          showAlert("Pengiriman ditolak parsial. Payroll mandor proporsional diproses async.");
-        } else {
-          showAlert("Pengiriman ditolak dengan alasan.");
-        }
-        cancelReject();
+        showAlert("Hasil pengiriman akhir ditolak.");
         loadData();
       } else {
-        showAlert(result.message || "Gagal menolak pengiriman final", "error");
+        showAlert(result.message || "Gagal menolak hasil pengiriman akhir", "error");
       }
     } catch (error) {
-      showAlert("Gagal menolak pengiriman final: " + error.message, "error");
+      showAlert("Gagal menolak hasil pengiriman akhir: " + error.message, "error");
     } finally {
-      setLoadingRejectId(null);
+      setActionLoadingKey(null);
+    }
+  };
+
+  const handleRejectPartial = async (assignmentId, muatanKgDiakui, reason) => {
+    if (!adminId) {
+      showAlert("Admin tidak terdeteksi. Silakan login ulang.", "error");
+      return;
+    }
+    const parsedKg = Number(muatanKgDiakui);
+    if (!parsedKg || Number.isNaN(parsedKg) || parsedKg <= 0) {
+      showAlert("Kilogram diakui wajib diisi dan lebih dari 0.", "error");
+      return;
+    }
+    if (!reason || !reason.trim()) {
+      showAlert("Alasan penolakan wajib diisi.", "error");
+      return;
+    }
+    setActionLoadingKey(`partial:${assignmentId}`);
+    try {
+      const result = await rejectAssignmentFinalParsialAdmin(
+        assignmentId,
+        adminId,
+        parsedKg,
+        reason.trim()
+      );
+      if (result.success) {
+        showAlert("Penolakan parsial dikirim. Payroll mandor diproses proporsional.");
+        loadData();
+      } else {
+        showAlert(result.message || "Gagal menolak parsial", "error");
+      }
+    } catch (error) {
+      showAlert("Gagal menolak parsial: " + error.message, "error");
+    } finally {
+      setActionLoadingKey(null);
     }
   };
 
@@ -149,29 +158,29 @@ export default function AdminTab() {
   }, [resolveAdminId, loadData]);
 
   return (
-    <div className="space-y-6">
+    <div className="admin-tab space-y-6">
       <Alert
         message={alert.message}
         type={alert.type}
         onClose={() => setAlert({ message: "", type: "success" })}
       />
 
-      <section className="space-y-4">
-        <div>
+      <section className="admin-tab__panel space-y-4">
+        <div className="admin-tab__heading">
           <h2 className="text-xl font-semibold">Pengiriman Disetujui Mandor</h2>
           <p className="text-sm text-muted-foreground">
-            Cari berdasarkan nama mandor dan rentang tanggal.
+            Cari berdasarkan nama atau username mandor dan rentang tanggal.
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="admin-tab__filters grid gap-3 md:grid-cols-4">
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="mandorName">Search Nama Mandor</Label>
+            <Label htmlFor="mandorName">Search Nama/Username Mandor</Label>
             <Input
               id="mandorName"
               value={mandorName}
               onChange={(e) => setMandorName(e.target.value)}
-              placeholder="Contoh: Budi"
+              placeholder="Contoh: Budi atau mandor887"
             />
           </div>
           <div className="space-y-2">
@@ -184,95 +193,22 @@ export default function AdminTab() {
           </div>
         </div>
 
-        <Button onClick={loadData} disabled={loading}>
+        <Button className="admin-tab__filter-btn" onClick={loadData} disabled={loading}>
           {loading ? "Memuat..." : "Filter"}
         </Button>
       </section>
 
-      <section>
-        <div className="overflow-hidden rounded-lg border">
-          <table className="w-full text-sm">
-            <thead className="bg-muted text-xs uppercase text-muted-foreground">
-              <tr>
-                <th className="px-4 py-3 text-left font-semibold">ID Pengiriman</th>
-                <th className="px-4 py-3 text-left font-semibold">Nama Mandor</th>
-                <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
-                <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
-                <th className="px-4 py-3 text-left font-semibold">Waktu Disetujui Mandor</th>
-                <th className="px-4 py-3 text-left font-semibold">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {data.length > 0 ? (
-                data.map((item) => (
-                  <tr key={item.pengirimanId} className="hover:bg-muted/50">
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{item.pengirimanId}</td>
-                    <td className="px-4 py-3">{item.mandorName}</td>
-                    <td className="px-4 py-3">{item.muatanKg} kg</td>
-                    <td className="px-4 py-3">{item.tujuan}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(item.waktuDisetujui)}</td>
-                    <td className="px-4 py-3">
-                      {rejectingId === item.pengirimanId ? (
-                        <div className="space-y-2">
-                          {rejectMode === "partial" && (
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.1"
-                              placeholder="Kilogram Diakui"
-                              value={muatanKgDiakui}
-                              onChange={(e) => setMuatanKgDiakui(e.target.value)}
-                            />
-                          )}
-                          <Textarea
-                            placeholder="Alasan penolakan"
-                            value={alasanPenolakan}
-                            onChange={(e) => setAlasanPenolakan(e.target.value)}
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            <Button
-                              size="xs"
-                              variant="destructive"
-                              onClick={() => handleRejectFinal(item.pengirimanId, item.muatanKg)}
-                              disabled={loadingRejectId === item.pengirimanId}
-                            >
-                              {loadingRejectId === item.pengirimanId ? "Memproses..." : "Kirim Penolakan"}
-                            </Button>
-                            <Button size="xs" variant="ghost" onClick={cancelReject}>
-                              Batal
-                            </Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="xs"
-                            onClick={() => handleApproveFinal(item.pengirimanId)}
-                            disabled={loadingApproveId === item.pengirimanId}
-                          >
-                            {loadingApproveId === item.pengirimanId ? "Memproses..." : "Setujui Akhir"}
-                          </Button>
-                          <Button size="xs" variant="outline" onClick={() => startReject(item.pengirimanId, "full")}>
-                            Tolak
-                          </Button>
-                          <Button size="xs" variant="secondary" onClick={() => startReject(item.pengirimanId, "partial")}>
-                            Tolak Parsial
-                          </Button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="px-4 py-6 text-center text-sm text-muted-foreground">
-                    Tidak ada data pengiriman disetujui mandor
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+      <section className="admin-tab__table-wrap">
+        <TablePengirimanDisetujui
+          data={data}
+          loading={loading}
+          onApproveFinal={handleApproveFinal}
+          onRejectFinal={handleRejectFinal}
+          onRejectPartial={handleRejectPartial}
+          actionLoadingKey={actionLoadingKey}
+          lockedApproveIds={lockedApproveIds}
+          isPrimaryAdmin={isPrimaryAdmin}
+        />
       </section>
     </div>
   );

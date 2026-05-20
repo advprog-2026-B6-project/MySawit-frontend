@@ -28,7 +28,7 @@ describe("pengiriman api client", () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      text: jest.fn().mockResolvedValueOnce(JSON.stringify({ success: true, data: [] })),
+      json: jest.fn().mockResolvedValueOnce({ success: true, data: [] }),
     });
 
     await fetchAllSupir();
@@ -50,7 +50,7 @@ describe("pengiriman api client", () => {
       ok: false,
       status: 403,
       statusText: "Forbidden",
-      text: jest.fn().mockResolvedValueOnce(""),
+      json: jest.fn().mockResolvedValueOnce({ success: false, message: "Akses ditolak" }),
     });
 
     const result = await fetchSupirBertugas();
@@ -63,9 +63,7 @@ describe("pengiriman api client", () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      text: jest.fn().mockResolvedValueOnce(
-        JSON.stringify({ success: true, data: [{ id: "p1" }] }),
-      ),
+      json: jest.fn().mockResolvedValueOnce({ success: true, data: [{ id: "p1" }] }),
     });
 
     const result = await fetchPengirimanBerlangsung();
@@ -77,9 +75,7 @@ describe("pengiriman api client", () => {
 
     global.fetch.mockResolvedValueOnce({
       ok: true,
-      text: jest.fn().mockResolvedValueOnce(
-        JSON.stringify({ success: true, data: { id: "p1" } }),
-      ),
+      json: jest.fn().mockResolvedValueOnce({ success: true, data: { id: "p1" } }),
     });
 
     await buatPengiriman({

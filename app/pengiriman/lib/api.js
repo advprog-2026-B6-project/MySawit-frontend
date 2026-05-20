@@ -179,16 +179,37 @@ export async function fetchUserByUsername(username) {
   return response.json();
 }
 
+export async function fetchCurrentUser() {
+  const response = await fetch(`${API_BASE_URL}/users/me`, {
+    headers: buildAuthHeaders(),
+  });
+  if (response.status === 404 || response.status === 401) return null;
+  return response.json();
+}
+
 export async function fetchApprovedPengirimanAdmin(filters = {}) {
   const params = new URLSearchParams();
-  if (filters.mandorName) params.set('mandorName', filters.mandorName);
+  const mandorQuery = (filters.mandorQuery ?? filters.mandorName ?? "").trim();
+  if (mandorQuery) params.set('mandorName', mandorQuery);
   if (filters.tanggalMulai) params.set('tanggalMulai', filters.tanggalMulai);
   if (filters.tanggalSelesai) params.set('tanggalSelesai', filters.tanggalSelesai);
   const query = params.toString();
   const response = await fetch(`${API_BASE_URL}/api/admin/pengiriman/approved${query ? `?${query}` : ''}`, {
     headers: buildAuthHeaders(),
   });
-  return response.json();
+  const payload = await response.json();
+
+  // Support both wrapped ApiResponse and plain list payloads.
+  if (Array.isArray(payload)) {
+    return { success: true, data: payload };
+  }
+  if (payload && Array.isArray(payload.data)) {
+    return { ...payload, success: payload.success ?? true };
+  }
+  if (payload && payload.data && Array.isArray(payload.data.content)) {
+    return { ...payload, data: payload.data.content, success: payload.success ?? true };
+  }
+  return payload ?? { success: false, data: [] };
 }
 
 export async function approvePengirimanFinalAdmin(pengirimanId, adminId) {
@@ -229,6 +250,50 @@ export async function rejectPengirimanFinalParsialAdmin(
     },
     body: JSON.stringify({ adminId, muatanKgDiakui, alasanPenolakan }),
   });
+  return response.json();
+}
+
+export async function approveAssignmentFinalAdmin(assignmentId, adminId) {
+  const response = await fetch(`${API_BASE_URL}/api/admin/pengiriman/assignments/${assignmentId}/approve`, {
+    method: 'PUT',
+    headers: {
+      ...buildAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ adminId }),
+  });
+  return response.json();
+}
+
+export async function rejectAssignmentFinalAdmin(assignmentId, adminId, alasanPenolakan) {
+  const response = await fetch(`${API_BASE_URL}/api/admin/pengiriman/assignments/${assignmentId}/reject`, {
+    method: 'PUT',
+    headers: {
+      ...buildAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ adminId, alasanPenolakan }),
+  });
+  return response.json();
+}
+
+export async function rejectAssignmentFinalParsialAdmin(
+  assignmentId,
+  adminId,
+  muatanKgDiakui,
+  alasanPenolakan,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/api/admin/pengiriman/assignments/${assignmentId}/reject-partial`,
+    {
+      method: 'PUT',
+      headers: {
+        ...buildAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ adminId, muatanKgDiakui, alasanPenolakan }),
+    },
+  );
   return response.json();
 }
 
