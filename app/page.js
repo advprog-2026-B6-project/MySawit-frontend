@@ -1,110 +1,109 @@
 "use client";
 
+import { PageHero, PageShell, SurfaceCard } from "@/components/app/page-shell";
 import { Button } from "@/components/ui/button";
+import {
+  clearStoredToken,
+  getStoredToken,
+  parseRoleFromToken,
+} from "@/lib/auth";
+import { cn } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+const defaultHighlights = [
+  "Role-based access for admin, mandor, buruh, and supir.",
+  "Manages sawit land records, and plot details.",
+  "Record harvest output of Buruh ",
+  "Organizes shipment of harvest and delivery status.",
+  "Handles wage and payment processing.",
+];
 
 export default function Home() {
-  const [msg, setMsg] = useState("Loading...");
-  const [authRole, setAuthRole] = useState(null);
-
-  useEffect(() => {
-    // TODO: Move JWT parsing into an auth module/context when the shared auth layer is available.
-    const token = localStorage.getItem("token");
-    // setAuthRole(parseRoleFromToken(token));
-  }, []);
+  const [authRole, setAuthRole] = useState(() =>
+    parseRoleFromToken(getStoredToken()),
+  );
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    clearStoredToken();
     setAuthRole(null);
+    toast.success("You have been logged out.");
   };
 
-  // subject for removal? udah ada login regist baru
-  // const showPublicActions = !authRole;
-  const showBuruhActions = authRole === "BURUH";
-  const showMandorActions = authRole === "MANDOR";
-
   return (
-    <div>
-      <div className="w-full h-16 bg-primary flex justify-between px-10 py-5 text-white">
-        <div>MySawit</div>
-        <div className="flex gap-8">
-          <Link href="/1">module 1</Link>
-          <Link href="/2">module 2</Link>
-          <Link href="/3">module 3</Link>
-          <Link href="/4">module 4</Link>
-        </div>
-      </div>
+    <PageShell>
+      <PageHero
+        eyebrow="ADPRO B6"
+        title="Sawit Field Operations App"
+        description="Manage authentication, workers, and field operations from one interface."
+        actions={
+          authRole ? (
+            <Button variant="outline" onClick={handleLogout}>
+              Logout
+            </Button>
+          ) : (
+            <>
+              <Button asChild>
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/register">Register</Link>
+              </Button>
+            </>
+          )
+        }
+      />
 
-      <div className="flex-col justify-center items-center">
-        <div className="flex justify-center items-center">
-          <div className="flex flex-col gap-8">
-            <div className="text-4xl font-bold">MySawit</div>
-            <div className="max-w-[50ch]">
-              Custom sawit farm management app. Features include role based
-              authentication and field, haul, delivery, and payment management.
-              Adpro kelompok B6. Authentication - Daffa Ismail | Kebun - Felesia
-              Junelus | Hasil - Farrel Rifqi Bagaskoro | Pengiriman - Aufa Daffa
-              Satriatama | Pembayaran - Firos Aqiela Zufa
+      <SurfaceCard>
+        <div className="overflow-hidden rounded-[2rem] border border-green-100 bg-linear-to-br from-green-50 via-white to-lime-50">
+          <div className="grid gap-6 p-6 lg:grid-cols-[1.1fr_0.9fr] lg:p-8">
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
+                  Platform Overview
+                </p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                  Built for role-based plantation operations
+                </h2>
+                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+                  MySawit oversees admin access, field activities, delivery
+                  records, and payment workflows in a single system.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+                {defaultHighlights.map((highlight, index) => (
+                  <div
+                    key={highlight}
+                    className={cn(
+                      "rounded-2xl border border-green-100 bg-white/85 p-4 text-sm text-slate-700 shadow-sm",
+                      index < 3 ? "lg:col-span-2" : "lg:col-span-3",
+                    )}
+                  >
+                    <div className="mb-3 inline-flex rounded-full bg-green-100 p-2 text-green-700">
+                      <Sparkles className="size-4" />
+                    </div>
+                    <p>{highlight}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex gap-4 justify-center">
-              <Link href="/login">
-                <Button className="px-8 py-5">Login</Button>
-              </Link>
-              <Link href="/register">
-                <Button className="px-8 py-5">Register</Button>
-              </Link>
+
+            <div className="relative mx-auto min-h-[24rem] w-full max-w-xl">
+              <Image
+                src="/panda.png"
+                alt="MySawit panda mascot"
+                fill
+                priority
+                className="object-contain drop-shadow-[0_24px_48px_rgba(22,101,52,0.18)]"
+              />
             </div>
           </div>
-          <div className="relative size-160 shrink-0">
-            <Image src="/panda.png" alt="" fill className="object-contain" />
-          </div>
         </div>
-      </div>
-
-      {authRole ? <Button onClick={handleLogout}>Logout</Button> : null}
-
-      <div className="text-white underline space-x-10 my-10">
-        {showBuruhActions ? (
-          <>
-            <Link href="/buruh/hasil">
-              <Button>Form Hasil Panen Buruh</Button>
-            </Link>
-            <Link href="/buruh/riwayat">
-              <Button>Riwayat Panen Buruh</Button>
-            </Link>
-          </>
-        ) : null}
-
-        {showMandorActions ? (
-          <>
-            <Link href="/mandor/riwayat">
-              <Button>Riwayat Panen Mandor</Button>
-            </Link>
-          </>
-        ) : null}
-      </div>
-    </div>
+      </SurfaceCard>
+    </PageShell>
   );
-}
-
-function parseRoleFromToken(token) {
-  if (!token) {
-    return null;
-  }
-
-  try {
-    const payloadPart = token.split(".")[1];
-    if (!payloadPart) {
-      return null;
-    }
-
-    const normalizedPayload = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
-    const decodedPayload = atob(normalizedPayload);
-    const payload = JSON.parse(decodedPayload);
-    return payload?.role ?? null;
-  } catch {
-    return null;
-  }
 }

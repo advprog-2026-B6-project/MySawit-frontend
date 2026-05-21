@@ -1,8 +1,10 @@
 "use client";
+import { PageHero, PageShell, SurfaceCard } from "@/components/app/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeClosed } from "lucide-react";
+import { requestJson } from "@/lib/api-client";
+import { ArrowLeft, Eye, EyeClosed, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { toast } from "sonner";
@@ -22,6 +24,7 @@ const Page = () => {
   const [password, setPassword] = useState("");
   const [certificationNumber, setCertificationNumber] = useState("");
   const [job, setJob] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordVisibility = () => {
@@ -42,130 +45,151 @@ const Page = () => {
       return;
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s
-
     const payload = { role: job.toUpperCase(), fullname, username, password };
 
     if (job === "Mandor") {
       payload.certificationNumber = certificationNumber;
     }
 
-    console.log(payload);
-
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        },
-      );
-
-      clearTimeout(timeout);
-
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        data = { message: "Registration failed" };
-      }
-
-      if (!res.ok) {
-        toast.error(data.message);
-        return;
-      }
+      setIsSubmitting(true);
+      await requestJson("/auth/register", {
+        method: "POST",
+        body: payload,
+      });
 
       toast.success("Registered successfully, please login");
       router.push("/login");
     } catch (err) {
-      if (err.name === "AbortError") {
-        toast.error("Request timed out");
-        return;
-      }
-
-      toast.error("Error. Please try again.");
+      toast.error(err.message || "Registration failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const AccountTypes = ["Buruh", "Mandor", "Supir"];
+  const accountTypes = ["Buruh", "Mandor", "Supir"];
 
   return (
-    <div className="w-100 mx-auto">
-      <Button onClick={() => router.back()} className="w-24 mb-4  mt-20">
-        ← Back
-      </Button>
-      <form
-        onSubmit={handleRegister}
-        className="p-8 w-120 gap-2 flex flex-col border-primary border-2 shadow-xl rounded-xl "
-      >
-        <div className="font-semibold text-center text-xl mb-8">Register</div>
-        <Label>Select your job</Label>
-        <div className="mb-4">
-          <Combobox items={AccountTypes} value={job} onValueChange={setJob}>
-            <ComboboxInput placeholder="What is your job" />
-            <ComboboxContent>
-              <ComboboxEmpty>No jobs found.</ComboboxEmpty>
-              <ComboboxList>
-                {(item) => (
-                  <ComboboxItem key={item} value={item}>
-                    {item}
-                  </ComboboxItem>
-                )}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
-        </div>
-        {job === "Mandor" ? (
-          <>
-            <Label>Enter certification number</Label>
-            <Input
-              value={certificationNumber}
-              onChange={(e) => setCertificationNumber(e.target.value)}
-              placeholder="Certification number"
-              required
-              className="mb-4"
-            />
-          </>
-        ) : (
-          ""
-        )}
-        <Label>Enter full name</Label>
-        <Input
-          value={fullname}
-          onChange={(e) => setFullname(e.target.value)}
-          placeholder="Full name"
-          required
-          className="mb-4"
+    <PageShell className="flex items-center">
+      <div className="mx-auto w-full max-w-2xl">
+        <PageHero
+          eyebrow="Authentication"
+          title="Create a clean operational account"
+          description="Registration now follows the same request lifecycle, shadcn-based form components, and admin/profile styling language."
+          actions={
+            <Button variant="outline" onClick={() => router.back()}>
+              <ArrowLeft className="size-4" />
+              Back
+            </Button>
+          }
         />
-        <Label>Enter username</Label>
-        <Input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          placeholder="Username"
-          required
-          className="mb-4"
-        />
-        <Label>Enter password</Label>
-        <div className="flex gap-4">
-          <Input
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            required
-          />
-          <Button onClick={togglePasswordVisibility} type="button">
-            {showPassword ? <Eye /> : <EyeClosed />}
-          </Button>
-        </div>
-        <Button className="w-36 mt-8 self-center" type="submit">
-          Register
-        </Button>
-      </form>
-    </div>
+
+        <SurfaceCard>
+          <form onSubmit={handleRegister} className="space-y-5">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
+                Register
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">
+                Set up your account
+              </h2>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Select your job</Label>
+              <Combobox items={accountTypes} value={job} onValueChange={setJob}>
+                <ComboboxInput placeholder="Choose your role" />
+                <ComboboxContent>
+                  <ComboboxEmpty>No jobs found.</ComboboxEmpty>
+                  <ComboboxList>
+                    {(item) => (
+                      <ComboboxItem key={item} value={item}>
+                        {item}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            </div>
+
+            {job === "Mandor" ? (
+              <div className="space-y-2">
+                <Label htmlFor="certification-number">
+                  Certification number
+                </Label>
+                <Input
+                  id="certification-number"
+                  value={certificationNumber}
+                  onChange={(e) => setCertificationNumber(e.target.value)}
+                  placeholder="Enter certification number"
+                  required
+                />
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="full-name">Full name</Label>
+              <Input
+                id="full-name"
+                value={fullname}
+                onChange={(e) => setFullname(e.target.value)}
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Choose a username"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="flex gap-3">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Create a password"
+                  autoComplete="new-password"
+                  required
+                />
+                <Button
+                  onClick={togglePasswordVisibility}
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                >
+                  {showPassword ? (
+                    <Eye className="size-4" />
+                  ) : (
+                    <EyeClosed className="size-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <Button className="w-full" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Register"
+              )}
+            </Button>
+          </form>
+        </SurfaceCard>
+      </div>
+    </PageShell>
   );
 };
 
