@@ -11,46 +11,77 @@ import { cn } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const defaultHighlights = [
-  "Role-based access for admin, mandor, buruh, and supir.",
-  "Manages sawit land records, and plot details.",
-  "Record harvest output of Buruh ",
-  "Organizes shipment of harvest and delivery status.",
-  "Handles wage and payment processing.",
+  "Akses kerja disesuaikan untuk admin, mandor, buruh, dan supir truk.",
+  "Data kebun sawit, luas lahan, dan koordinat tercatat terpusat.",
+  "Laporan hasil panen buruh tersimpan untuk proses verifikasi mandor.",
+  "Pengiriman komoditas ke pabrik dapat dipantau dari penugasan hingga tiba.",
+  "Perhitungan upah dan pembayaran mengikuti catatan operasional yang tervalidasi.",
 ];
 
 export default function Home() {
   const [authRole, setAuthRole] = useState(() =>
     parseRoleFromToken(getStoredToken()),
   );
+  const [backendMessage, setBackendMessage] = useState("Memeriksa layanan...");
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hello`)
+      .then((res) => res.json())
+      .then((data) =>
+        setBackendMessage(
+          data?.message ?? "Layanan belum mengirimkan respons yang valid.",
+        ),
+      )
+      .catch(() =>
+        setBackendMessage("Layanan backend belum dapat dihubungi."),
+      );
+  }, []);
 
   const handleLogout = () => {
     clearStoredToken();
     setAuthRole(null);
-    toast.success("You have been logged out.");
+    toast.success("Sesi pengguna telah diakhiri.");
   };
 
   return (
     <PageShell>
       <PageHero
         eyebrow="ADPRO B6"
-        title="Sawit Field Operations App"
-        description="Manage authentication, workers, and field operations from one interface."
+        title="MySawit"
+        description="Platform operasional terpadu untuk mengelola kebun, tenaga kerja, pengiriman komoditas, dan pembayaran."
         actions={
           authRole ? (
-            <Button variant="outline" onClick={handleLogout}>
-              Logout
-            </Button>
+            <>
+              {authRole === "BURUH" ? (
+                <>
+                  <Button asChild>
+                    <Link href="/buruh/hasil">Input Hasil Panen</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/buruh/riwayat">Riwayat Panen Saya</Link>
+                  </Button>
+                </>
+              ) : null}
+              {authRole === "MANDOR" ? (
+                <Button asChild>
+                  <Link href="/mandor/riwayat">Verifikasi Panen</Link>
+                </Button>
+              ) : null}
+              <Button variant="outline" onClick={handleLogout}>
+                Keluar
+              </Button>
+            </>
           ) : (
             <>
               <Button asChild>
-                <Link href="/login">Login</Link>
+                <Link href="/login">Masuk</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="/register">Register</Link>
+                <Link href="/register">Daftar Akun</Link>
               </Button>
             </>
           )
@@ -63,14 +94,15 @@ export default function Home() {
             <div className="space-y-5">
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
-                  Platform Overview
+                  Deskripsi Sistem
                 </p>
                 <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                  Built for role-based plantation operations
+                  Integrasi data operasional perkebunan
                 </h2>
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                  MySawit oversees admin access, field activities, delivery
-                  records, and payment workflows in a single system.
+                  MySawit menyelaraskan koordinasi antara
+                  buruh kebun, mandor, armada transportasi, dan administrasi
+                  pembayaran agar setiap perpindahan komoditas tercatat akurat.
                 </p>
               </div>
 
@@ -95,7 +127,7 @@ export default function Home() {
             <div className="relative mx-auto min-h-[24rem] w-full max-w-xl">
               <Image
                 src="/panda.png"
-                alt="MySawit panda mascot"
+                alt="Maskot MySawit"
                 fill
                 priority
                 className="object-contain drop-shadow-[0_24px_48px_rgba(22,101,52,0.18)]"

@@ -1,9 +1,29 @@
 "use client";
 
+import {
+  AlertMessage,
+  EmptyState,
+  PageHero,
+  PageShell,
+  SectionHeader,
+  StatusBadge,
+  SurfaceCard,
+} from "@/components/app/page-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Filter, Loader2, User } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+const backendUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+
+const statusTones = {
+  SUBMITTED: "sky",
+  VERIFIED: "green",
+  REJECTED: "red",
+};
 
 export default function MandorRiwayatPage() {
   const [date, setDate] = useState("");
@@ -22,12 +42,8 @@ export default function MandorRiwayatPage() {
 
   const buildQuery = () => {
     const params = new URLSearchParams();
-    if (date) {
-      params.set("date", date);
-    }
-    if (workerName) {
-      params.set("workerName", workerName);
-    }
+    if (date) params.set("date", date);
+    if (workerName) params.set("workerName", workerName);
 
     const query = params.toString();
     return query ? `?${query}` : "";
@@ -40,9 +56,7 @@ export default function MandorRiwayatPage() {
     try {
       const response = await fetch(
         `${backendUrl}/hasil-reports/mandor/history${buildQuery()}`,
-        {
-          headers: getAuthHeader(),
-        },
+        { headers: getAuthHeader() },
       );
 
       if (!response.ok) {
@@ -61,7 +75,7 @@ export default function MandorRiwayatPage() {
 
   useEffect(() => {
     fetchHistory();
-    // TODO: role guard dari auth context, only role MANDOR yang bisa access page ini
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilterSubmit = (event) => {
@@ -70,99 +84,122 @@ export default function MandorRiwayatPage() {
   };
 
   return (
-    <main style={{ maxWidth: "1000px", margin: "0 auto", padding: "24px" }}>
-      <h1>Riwayat Panen Buruh (Mandor)</h1>
+    <PageShell>
+      <PageHero
+        eyebrow="Verifikasi Panen"
+        title="Riwayat Panen Buruh (Mandor)"
+        description="Pantau laporan panen buruh untuk memastikan data produksi siap diverifikasi dan ditindaklanjuti."
+      />
 
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      <SurfaceCard>
+        <SectionHeader
+          eyebrow="Filter Mandor"
+          title="Cari laporan buruh"
+          description="Pilih tanggal atau nama buruh untuk menyaring riwayat panen."
+        />
 
-      <form onSubmit={handleFilterSubmit} style={{ marginTop: "16px" }}>
-        <div
-          style={{
-            display: "grid",
-            gap: "12px",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            marginBottom: "12px",
-          }}
+        {error ? (
+          <AlertMessage type="error" className="mb-5">
+            {error}
+          </AlertMessage>
+        ) : null}
+
+        <form
+          onSubmit={handleFilterSubmit}
+          className="grid gap-4 md:grid-cols-[220px_1fr_auto]"
         >
-          <div>
-            <label htmlFor="date">Tanggal</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="date">Tanggal</Label>
+            <Input
               id="date"
               type="date"
               value={date}
               onChange={(event) => setDate(event.target.value)}
-              style={{ display: "block", width: "100%", padding: "8px" }}
             />
           </div>
 
-          <div>
-            <label htmlFor="workerName">Nama Buruh</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="workerName">Nama Buruh</Label>
+            <Input
               id="workerName"
               type="text"
               value={workerName}
               onChange={(event) => setWorkerName(event.target.value)}
               placeholder="Contoh: Budi"
-              style={{ display: "block", width: "100%", padding: "8px" }}
             />
           </div>
-        </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Memuat..." : "Terapkan Filter"}
-        </button>
-      </form>
+          <Button type="submit" disabled={loading} className="self-end">
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Filter className="size-4" />
+            )}
+            Terapkan Filter
+          </Button>
+        </form>
+      </SurfaceCard>
 
-      {loading ? <p style={{ marginTop: "16px" }}>Memuat riwayat panen...</p> : null}
+      <SurfaceCard className="mt-6">
+        <SectionHeader
+          eyebrow="Daftar Laporan"
+          title="Hasil pencarian"
+          description={`${reports.length} laporan ditemukan.`}
+        />
 
-      {!loading && reports.length === 0 ? (
-        <p style={{ marginTop: "16px" }}>Tidak ada data riwayat panen untuk filter saat ini.</p>
-      ) : null}
-
-      {!loading && reports.length > 0 ? (
-        <div style={{ marginTop: "20px", overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={tableHeadCell}>Tanggal</th>
-                <th style={tableHeadCell}>Nama Buruh</th>
-                <th style={tableHeadCell}>Kilogram</th>
-                <th style={tableHeadCell}>Status</th>
-                <th style={tableHeadCell}>Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reports.map((report) => (
-                <tr key={report.id}>
-                  <td style={tableBodyCell}>{report.hasilDate || "-"}</td>
-                  <td style={tableBodyCell}>{report.workerName || report.workerId || "-"}</td>
-                  <td style={tableBodyCell}>{report.weightKg ?? "-"}</td>
-                  <td style={tableBodyCell}>{report.status || "-"}</td>
-                  <td style={tableBodyCell}>
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 py-12 text-sm text-slate-500">
+            <Loader2 className="size-4 animate-spin" />
+            Memuat riwayat panen...
+          </div>
+        ) : reports.length === 0 ? (
+          <EmptyState
+            title="Tidak ada data riwayat panen"
+            description="Tidak ada laporan yang sesuai dengan filter saat ini."
+          />
+        ) : (
+          <div className="overflow-hidden rounded-3xl border border-green-100 bg-white">
+            <div className="grid grid-cols-12 gap-4 bg-green-50 px-5 py-4 text-sm font-semibold text-green-900">
+              <div className="col-span-2">Tanggal</div>
+              <div className="col-span-3">Nama Buruh</div>
+              <div className="col-span-2">Kilogram</div>
+              <div className="col-span-2">Status</div>
+              <div className="col-span-3">Aksi</div>
+            </div>
+            {reports.map((report) => (
+              <div
+                key={report.id}
+                className="grid grid-cols-12 gap-4 border-t border-slate-100 px-5 py-4 text-sm"
+              >
+                <div className="col-span-2 text-slate-700">
+                  {report.hasilDate || "-"}
+                </div>
+                <div className="col-span-3 font-medium text-slate-900">
+                  {report.workerName || report.workerId || "-"}
+                </div>
+                <div className="col-span-2 text-slate-700">
+                  {report.weightKg ?? "-"} kg
+                </div>
+                <div className="col-span-2">
+                  <StatusBadge tone={statusTones[report.status] || "slate"}>
+                    {report.status || "-"}
+                  </StatusBadge>
+                </div>
+                <div className="col-span-3">
+                  <Button asChild variant="outline" size="sm">
                     <Link
                       href={`/mandor/buruh/${encodeURIComponent(report.workerId)}`}
-                      style={{ color: "#1f5eff", textDecoration: "underline" }}
                     >
+                      <User className="size-4" />
                       Lihat Profil Buruh
                     </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : null}
-    </main>
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SurfaceCard>
+    </PageShell>
   );
 }
-
-const tableHeadCell = {
-  textAlign: "left",
-  borderBottom: "1px solid #ccc",
-  padding: "10px 8px",
-};
-
-const tableBodyCell = {
-  borderBottom: "1px solid #eee",
-  padding: "10px 8px",
-};
