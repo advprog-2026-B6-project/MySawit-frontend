@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-const searchTypes = ["Username", "Role"];
+const searchTypes = ["username", "Peran"];
 
 const roleBadgeStyles = {
   ADMIN: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -59,7 +59,7 @@ function ModalFrame({ title, description, children, onClose }) {
 export default function Page() {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [searchBy, setSearchBy] = useState("Username");
+  const [searchBy, setSearchBy] = useState("username");
   const [users, setUsers] = useState([]);
   const [mandors, setMandors] = useState([]);
   const [pageError, setPageError] = useState("");
@@ -79,8 +79,8 @@ export default function Page() {
       const data = await requestJson("/admin/users", { auth: true });
       setUsers(Array.isArray(data) ? data : []);
     } catch (error) {
-      setPageError(error.message || "Failed to load users.");
-      toast.error(error.message || "Failed to load users.");
+      setPageError(error.message || "Gagal memuat data pengguna.");
+      toast.error(error.message || "Gagal memuat data pengguna.");
     } finally {
       setIsUsersLoading(false);
     }
@@ -96,7 +96,7 @@ export default function Page() {
         ),
       );
     } catch (error) {
-      toast.error(error.message || "Failed to load mandor list.");
+      toast.error(error.message || "Gagal memuat daftar mandor.");
     } finally {
       setIsMandorsLoading(false);
     }
@@ -120,7 +120,7 @@ export default function Page() {
         return true;
       }
 
-      if (searchBy === "Role") {
+      if (searchBy === "Peran") {
         return (user.role || "").toLowerCase().includes(query);
       }
 
@@ -162,12 +162,12 @@ export default function Page() {
         auth: true,
       });
       toast.success(
-        `User ${selectedUserForDelete.username} deleted successfully.`,
+        `Akun ${selectedUserForDelete.username} berhasil dihapus.`,
       );
       closeDeleteModal();
       await loadUsers();
     } catch (error) {
-      toast.error(error.message || "Failed to delete user.");
+      toast.error(error.message || "Gagal menghapus akun pengguna.");
     } finally {
       setActionLoading(false);
     }
@@ -175,7 +175,7 @@ export default function Page() {
 
   const handleConfirmAssign = async () => {
     if (!selectedUserForAssign || !selectedMandor) {
-      toast.error("Please select a mandor.");
+      toast.error("Pilih mandor penanggung jawab terlebih dahulu.");
       return;
     }
 
@@ -191,12 +191,12 @@ export default function Page() {
         auth: true,
       });
       toast.success(
-        `User ${selectedUserForAssign.username} has been ${isReassign ? "reassigned" : "assigned"} successfully.`,
+        `Akun ${selectedUserForAssign.username} berhasil ${isReassign ? "dialihkan" : "ditugaskan"} ke mandor.`,
       );
       closeAssignModal();
       await loadUsers();
     } catch (error) {
-      toast.error(error.message || "Failed to assign mandor.");
+      toast.error(error.message || "Gagal menetapkan mandor.");
     } finally {
       setActionLoading(false);
     }
@@ -205,14 +205,14 @@ export default function Page() {
   return (
     <PageShell>
       <PageHero
-        eyebrow="Auth Module"
-        title="Admin dashboard"
-        description="Manage user records, clean up inactive accounts, and keep buruh to mandor assignments in sync with one consistent admin workflow."
+        eyebrow="Administrasi Pengguna"
+        title="Pengelolaan akun"
+        description="Kelola akun pegawai, hapus data yang tidak aktif, dan tetapkan hubungan kerja antara buruh kebun dan mandor."
         actions={
           <>
             <Button variant="outline" onClick={() => router.back()}>
               <ArrowLeft className="size-4" />
-              Back
+              Kembali
             </Button>
             <Button
               variant="outline"
@@ -224,7 +224,7 @@ export default function Page() {
               ) : (
                 <Users className="size-4" />
               )}
-              Refresh users
+              Muat ulang pengguna
             </Button>
           </>
         }
@@ -233,18 +233,18 @@ export default function Page() {
       <SurfaceCard>
         <div>
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
-            User Directory
+            Direktori Pengguna
           </p>
           <h2 className="mt-2 text-2xl font-bold text-slate-900">
-            List of all users
+            Daftar akun terdaftar
           </h2>
           <p className="mt-2 text-sm text-slate-600">
-            Click a row to open the detailed profile view. Use the actions
-            column for destructive or assignment flows.
+            Pilih baris pengguna untuk melihat profil lengkap. Gunakan kolom
+            aksi untuk mengelola penugasan atau menghapus akun.
           </p>
           <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Assignment workflow disclaimer: only buruh accounts can be assigned
-            or reassigned to a mandor.
+            Catatan: hanya akun buruh yang dapat ditetapkan atau dialihkan ke
+            mandor.
           </p>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_220px] lg:max-w-[420px]">
@@ -253,7 +253,7 @@ export default function Page() {
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder={`Filter by ${searchBy.toLowerCase()}`}
+                placeholder={`Cari berdasarkan ${searchBy.toLowerCase()}`}
                 className="pl-9"
               />
             </div>
@@ -262,9 +262,9 @@ export default function Page() {
               value={searchBy}
               onValueChange={setSearchBy}
             >
-              <ComboboxInput placeholder="Search type" />
+              <ComboboxInput placeholder="Kriteria pencarian" />
               <ComboboxContent>
-                <ComboboxEmpty>No options found.</ComboboxEmpty>
+                <ComboboxEmpty>Kriteria tidak ditemukan.</ComboboxEmpty>
                 <ComboboxList>
                   {(item) => (
                     <ComboboxItem key={item} value={item}>
@@ -286,20 +286,20 @@ export default function Page() {
             <div className="grid grid-cols-12 gap-4 bg-green-50 px-5 py-4 text-sm font-semibold text-green-900">
               <div className="col-span-1">#</div>
               <div className="col-span-4">Username</div>
-              <div className="col-span-2">Role</div>
+              <div className="col-span-2">Peran</div>
               <div className="col-span-2">Mandor</div>
-              <div className="col-span-3">Actions</div>
+              <div className="col-span-3">Aksi</div>
             </div>
 
             <div className="max-h-[34rem] overflow-y-auto">
               {isUsersLoading ? (
                 <div className="flex items-center justify-center gap-3 px-5 py-12 text-sm text-slate-500">
                   <Loader2 className="size-4 animate-spin" />
-                  Loading users...
+                  Memuat data pengguna...
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="px-5 py-12 text-center text-sm text-slate-500">
-                  No users found.
+                  Tidak ada pengguna yang sesuai.
                 </div>
               ) : (
                 filteredUsers.map((user, index) => (
@@ -336,7 +336,7 @@ export default function Page() {
                         }}
                       >
                         <Trash2 className="size-4" />
-                        Delete
+                        Hapus
                       </Button>
                       {user.role === "BURUH" ? (
                         <Button
@@ -348,7 +348,7 @@ export default function Page() {
                           }}
                         >
                           <UserRoundCog className="size-4" />
-                          {user.mandorUsername ? "Reassign" : "Assign"}
+                          {user.mandorUsername ? "Alihkan" : "Tetapkan"}
                         </Button>
                       ) : null}
                     </div>
@@ -362,14 +362,14 @@ export default function Page() {
 
       {showDeleteConfirm && selectedUserForDelete ? (
         <ModalFrame
-          title="Confirm delete"
-          description={`Delete @${selectedUserForDelete.username} permanently from the system.`}
+          title="Konfirmasi penghapusan"
+          description={`Hapus akun @${selectedUserForDelete.username} secara permanen dari sistem.`}
           onClose={closeDeleteModal}
         >
           <div className="space-y-6">
             <p className="text-sm leading-6 text-slate-600">
-              This action cannot be undone. Make sure the account is no longer
-              needed before removing it.
+              Tindakan ini tidak dapat dibatalkan. Pastikan akun sudah tidak
+              diperlukan sebelum dihapus.
             </p>
             <div className="flex justify-end gap-3">
               <Button
@@ -377,7 +377,7 @@ export default function Page() {
                 onClick={closeDeleteModal}
                 disabled={actionLoading}
               >
-                Cancel
+                Batal
               </Button>
               <Button onClick={handleConfirmDelete} disabled={actionLoading}>
                 {actionLoading ? (
@@ -385,7 +385,7 @@ export default function Page() {
                 ) : (
                   <Trash2 className="size-4" />
                 )}
-                Delete user
+                Hapus akun
               </Button>
             </div>
           </div>
@@ -396,10 +396,10 @@ export default function Page() {
         <ModalFrame
           title={
             selectedUserForAssign.mandorUsername
-              ? "Reassign mandor"
-              : "Assign mandor"
+              ? "Alihkan mandor"
+              : "Tetapkan mandor"
           }
-          description={`Choose the mandor responsible for @${selectedUserForAssign.username}.`}
+          description={`Pilih mandor penanggung jawab untuk @${selectedUserForAssign.username}.`}
           onClose={closeAssignModal}
         >
           <div className="space-y-5">
@@ -411,15 +411,15 @@ export default function Page() {
                 </span>
               </p>
               <p className="mt-1">
-                Current mandor:{" "}
+                Mandor saat ini:{" "}
                 <span className="font-semibold">
-                  {selectedUserForAssign.mandorUsername || "Not assigned"}
+                  {selectedUserForAssign.mandorUsername || "Belum ditetapkan"}
                 </span>
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label>Select mandor</Label>
+              <Label>Pilih mandor</Label>
               <Combobox
                 items={mandors.map((mandor) => mandor.username)}
                 value={selectedMandor}
@@ -427,11 +427,11 @@ export default function Page() {
               >
                 <ComboboxInput
                   placeholder={
-                    isMandorsLoading ? "Loading mandors..." : "Choose a mandor"
+                    isMandorsLoading ? "Memuat daftar mandor..." : "Pilih mandor"
                   }
                 />
                 <ComboboxContent>
-                  <ComboboxEmpty>No mandor found.</ComboboxEmpty>
+                  <ComboboxEmpty>Mandor tidak ditemukan.</ComboboxEmpty>
                   <ComboboxList>
                     {(item) => (
                       <ComboboxItem key={item} value={item}>
@@ -449,7 +449,7 @@ export default function Page() {
                 onClick={closeAssignModal}
                 disabled={actionLoading}
               >
-                Cancel
+                Batal
               </Button>
               <Button
                 onClick={handleConfirmAssign}
@@ -460,7 +460,7 @@ export default function Page() {
                 ) : (
                   <UserRoundCog className="size-4" />
                 )}
-                {selectedUserForAssign.mandorUsername ? "Reassign" : "Assign"}
+                {selectedUserForAssign.mandorUsername ? "Alihkan" : "Tetapkan"}
               </Button>
             </div>
           </div>

@@ -1,8 +1,28 @@
 "use client";
 
+import {
+  AlertMessage,
+  EmptyState,
+  PageHero,
+  PageShell,
+  SectionHeader,
+  StatusBadge,
+  SurfaceCard,
+} from "@/components/app/page-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Filter, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+const backendUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+
+const statusTones = {
+  SUBMITTED: "sky",
+  VERIFIED: "green",
+  REJECTED: "red",
+};
 
 export default function BuruhRiwayatPage() {
   const [startDate, setStartDate] = useState("");
@@ -22,15 +42,9 @@ export default function BuruhRiwayatPage() {
 
   const buildQuery = () => {
     const params = new URLSearchParams();
-    if (startDate) {
-      params.set("startDate", startDate);
-    }
-    if (endDate) {
-      params.set("endDate", endDate);
-    }
-    if (status) {
-      params.set("status", status);
-    }
+    if (startDate) params.set("startDate", startDate);
+    if (endDate) params.set("endDate", endDate);
+    if (status) params.set("status", status);
 
     const query = params.toString();
     return query ? `?${query}` : "";
@@ -43,9 +57,7 @@ export default function BuruhRiwayatPage() {
     try {
       const response = await fetch(
         `${backendUrl}/hasil-reports/me/history${buildQuery()}`,
-        {
-          headers: getAuthHeader(),
-        },
+        { headers: getAuthHeader() },
       );
 
       if (!response.ok) {
@@ -64,7 +76,7 @@ export default function BuruhRiwayatPage() {
 
   useEffect(() => {
     fetchHistory();
-    // TODO: Integrasikan role guard dari auth context agar hanya role BURUH dapat mengakses halaman ini.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleFilterSubmit = (event) => {
@@ -73,49 +85,57 @@ export default function BuruhRiwayatPage() {
   };
 
   return (
-    <main style={{ maxWidth: "900px", margin: "0 auto", padding: "24px" }}>
-      <h1>Riwayat Panen Pribadi Buruh</h1>
+    <PageShell>
+      <PageHero
+        eyebrow="Riwayat Panen"
+        title="Riwayat Panen Pribadi Buruh"
+        description="Pantau laporan panen pribadi berdasarkan tanggal dan status verifikasi."
+      />
 
-      {error ? <p style={{ color: "crimson", marginTop: "8px" }}>{error}</p> : null}
+      <SurfaceCard>
+        <SectionHeader
+          eyebrow="Filter Riwayat"
+          title="Cari laporan panen"
+          description="Gunakan filter untuk melihat laporan dalam periode dan status tertentu."
+        />
 
-      <form onSubmit={handleFilterSubmit} style={{ marginTop: "16px" }}>
-        <div
-          style={{
-            display: "grid",
-            gap: "12px",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            marginBottom: "12px",
-          }}
+        {error ? (
+          <AlertMessage type="error" className="mb-5">
+            {error}
+          </AlertMessage>
+        ) : null}
+
+        <form
+          onSubmit={handleFilterSubmit}
+          className="grid gap-4 md:grid-cols-[1fr_1fr_220px_auto]"
         >
-          <div>
-            <label htmlFor="startDate">Start date</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="startDate">Start date</Label>
+            <Input
               id="startDate"
               type="date"
               value={startDate}
               onChange={(event) => setStartDate(event.target.value)}
-              style={{ display: "block", width: "100%", padding: "8px" }}
             />
           </div>
 
-          <div>
-            <label htmlFor="endDate">End date</label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="endDate">End date</Label>
+            <Input
               id="endDate"
               type="date"
               value={endDate}
               onChange={(event) => setEndDate(event.target.value)}
-              style={{ display: "block", width: "100%", padding: "8px" }}
             />
           </div>
 
-          <div>
-            <label htmlFor="status">Status</label>
+          <div className="space-y-2">
+            <Label htmlFor="status">Status</Label>
             <select
               id="status"
               value={status}
               onChange={(event) => setStatus(event.target.value)}
-              style={{ display: "block", width: "100%", padding: "8px" }}
+              className="h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
             >
               <option value="">Semua</option>
               <option value="SUBMITTED">SUBMITTED</option>
@@ -123,42 +143,63 @@ export default function BuruhRiwayatPage() {
               <option value="REJECTED">REJECTED</option>
             </select>
           </div>
-        </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Memuat..." : "Terapkan Filter"}
-        </button>
-      </form>
+          <Button type="submit" disabled={loading} className="self-end">
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Filter className="size-4" />
+            )}
+            Terapkan Filter
+          </Button>
+        </form>
+      </SurfaceCard>
 
-      {loading ? <p style={{ marginTop: "16px" }}>Memuat riwayat panen...</p> : null}
+      <SurfaceCard className="mt-6">
+        <SectionHeader
+          eyebrow="Daftar Laporan"
+          title="Hasil pencarian"
+          description={`${reports.length} laporan ditemukan.`}
+        />
 
-      {!loading && reports.length === 0 ? (
-        <p style={{ marginTop: "16px" }}>Belum ada riwayat panen untuk filter saat ini.</p>
-      ) : null}
-
-      {!loading && reports.length > 0 ? (
-        <div style={{ marginTop: "16px", display: "grid", gap: "12px" }}>
-          {reports.map((report) => (
-            <article
-              key={report.id}
-              style={{ border: "1px solid #ddd", borderRadius: "10px", padding: "12px" }}
-            >
-              <p>
-                <strong>Tanggal:</strong> {report.hasilDate || "-"}
-              </p>
-              <p>
-                <strong>Kilogram:</strong> {report.weightKg ?? "-"}
-              </p>
-              <p>
-                <strong>Status:</strong> {report.status || "-"}
-              </p>
-              <p>
-                <strong>Berita:</strong> {report.news || "-"}
-              </p>
-            </article>
-          ))}
-        </div>
-      ) : null}
-    </main>
+        {loading ? (
+          <div className="flex items-center justify-center gap-3 py-12 text-sm text-slate-500">
+            <Loader2 className="size-4 animate-spin" />
+            Memuat riwayat panen...
+          </div>
+        ) : reports.length === 0 ? (
+          <EmptyState
+            title="Belum ada riwayat panen"
+            description="Tidak ada laporan yang sesuai dengan filter saat ini."
+          />
+        ) : (
+          <div className="grid gap-4">
+            {reports.map((report) => (
+              <article
+                key={report.id}
+                className="rounded-2xl border border-green-100 bg-white p-5 shadow-sm"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {report.hasilDate || "-"}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-600">
+                      {report.weightKg ?? "-"} kg
+                    </p>
+                  </div>
+                  <StatusBadge tone={statusTones[report.status] || "slate"}>
+                    {report.status || "-"}
+                  </StatusBadge>
+                </div>
+                <p className="mt-4 text-sm leading-6 text-slate-600">
+                  {report.news || "-"}
+                </p>
+              </article>
+            ))}
+          </div>
+        )}
+      </SurfaceCard>
+    </PageShell>
   );
 }
