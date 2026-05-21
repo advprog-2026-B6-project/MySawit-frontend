@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import KebunForm from "../_components/KebunForm";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import KebunForm from "../../_components/KebunForm";
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -12,34 +12,59 @@ function authHeaders() {
     return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-export default function CreateKebunPage() {
+export default function EditKebunPage() {
     const router = useRouter();
+    const params = useParams();
+    const kebunId = params.id;
+
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const [fetching, setFetching] = useState(true);
+    const [kodeUnik, setKodeUnik] = useState("");
     const [form, setForm] = useState({
         namaKebun: "",
-        kodeUnik: "",
         kiriAtasX: "", kiriAtasY: "",
         kiriBawahX: "", kiriBawahY: "",
         kananAtasX: "", kananAtasY: "",
         kananBawahX: "", kananBawahY: "",
     });
 
+    useEffect(() => {
+        const fetchDetail = async () => {
+            try {
+                const res = await fetch(`${API}/kebun/detail/${kebunId}`, {
+                    headers: authHeaders(),
+                });
+                if (!res.ok) throw new Error("Kebun tidak ditemukan");
+                const data = await res.json();
+                setKodeUnik(data.kodeUnik);
+                setForm({
+                    namaKebun: data.namaKebun || "",
+                    kiriAtasX: data.kiriAtas?.x?.toString() || "",
+                    kiriAtasY: data.kiriAtas?.y?.toString() || "",
+                    kiriBawahX: data.kiriBawah?.x?.toString() || "",
+                    kiriBawahY: data.kiriBawah?.y?.toString() || "",
+                    kananAtasX: data.kananAtas?.x?.toString() || "",
+                    kananAtasY: data.kananAtas?.y?.toString() || "",
+                    kananBawahX: data.kananBawah?.x?.toString() || "",
+                    kananBawahY: data.kananBawah?.y?.toString() || "",
+                });
+            } catch (err) {
+                setError("Gagal memuat data kebun");
+            } finally {
+                setFetching(false);
+            }
+        };
+        fetchDetail();
+    }, [kebunId]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
         setLoading(true);
 
-        const kodeRegex = /^[A-Z]{2}-\d{4}$/;
-        if (!kodeRegex.test(form.kodeUnik)) {
-            setError("Format kode unik tidak valid. Gunakan format: XX-0000 (contoh: KB-0001)");
-            setLoading(false);
-            return;
-        }
-
         const body = {
             namaKebun: form.namaKebun,
-            kodeUnik: form.kodeUnik,
             kiriAtas: { x: parseFloat(form.kiriAtasX), y: parseFloat(form.kiriAtasY) },
             kiriBawah: { x: parseFloat(form.kiriBawahX), y: parseFloat(form.kiriBawahY) },
             kananAtas: { x: parseFloat(form.kananAtasX), y: parseFloat(form.kananAtasY) },
@@ -47,14 +72,14 @@ export default function CreateKebunPage() {
         };
 
         try {
-            const res = await fetch(`${API}/kebun`, {
-                method: "POST",
+            const res = await fetch(`${API}/kebun/${kebunId}`, {
+                method: "PUT",
                 headers: { "Content-Type": "application/json", ...authHeaders() },
                 body: JSON.stringify(body),
             });
             if (!res.ok) {
                 const data = await res.json();
-                setError(data.error || "Gagal membuat kebun");
+                setError(data.error || "Gagal mengupdate kebun");
                 setLoading(false);
                 return;
             }
@@ -64,6 +89,14 @@ export default function CreateKebunPage() {
             setLoading(false);
         }
     };
+
+    if (fetching) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-[#0a0f1a] via-[#0d1525] to-[#0a1628] flex items-center justify-center">
+                <Loader2 className="size-8 text-emerald-400 animate-spin" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#0a0f1a] via-[#0d1525] to-[#0a1628] text-white">
@@ -76,8 +109,13 @@ export default function CreateKebunPage() {
                     Kembali ke Daftar Kebun
                 </button>
 
-                <h1 className="text-2xl font-bold tracking-tight mb-1">Buat Kebun Baru</h1>
-                <p className="text-sm text-white/40 mb-8">Isi data di bawah untuk mendaftarkan kebun sawit baru</p>
+                <div className="flex items-center gap-3 mb-1">
+                    <h1 className="text-2xl font-bold tracking-tight">Edit Kebun</h1>
+                    <span className="px-2 py-0.5 text-xs font-mono font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-md">
+                        {kodeUnik}
+                    </span>
+                </div>
+                <p className="text-sm text-white/40 mb-8">Kode unik kebun tidak dapat diubah</p>
 
                 {error && (
                     <div className="mb-6 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-sm text-red-400">
@@ -88,7 +126,8 @@ export default function CreateKebunPage() {
                 <KebunForm 
                     form={form} 
                     setForm={setForm} 
-                    isEdit={false} 
+                    kodeUnik={kodeUnik} 
+                    isEdit={true} 
                     loading={loading} 
                     onSubmit={handleSubmit} 
                     onCancel={() => router.push("/kebun")} 
