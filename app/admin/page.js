@@ -303,37 +303,38 @@ export default function Page() {
                 </div>
               ) : (
                 filteredUsers.map((user, index) => (
-                  <button
+                  <div
                     key={user.id}
-                    type="button"
-                    className="grid w-full grid-cols-12 gap-4 border-t border-slate-100 px-5 py-4 text-left transition hover:bg-green-50/60"
-                    onClick={() => router.push(`/profile/${user.id}`)}
+                    className="grid w-full grid-cols-12 gap-4 border-t border-slate-100 px-5 py-4 transition hover:bg-green-50/60"
                   >
-                    <div className="col-span-1 text-sm text-slate-600">
-                      {index + 1}
-                    </div>
-                    <div className="col-span-4 truncate font-medium text-green-800">
-                      {user.username}
-                    </div>
-                    <div className="col-span-2 text-sm">
-                      <span
-                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${roleBadgeStyles[user.role] || "border-slate-200 bg-slate-50 text-slate-700"}`}
-                      >
-                        {user.role}
-                      </span>
-                    </div>
-                    <div className="col-span-2 text-sm text-slate-600">
-                      {user.mandorUsername || "-"}
-                    </div>
+                    <button
+                      type="button"
+                      className="col-span-9 grid grid-cols-9 gap-4 text-left"
+                      onClick={() => router.push(`/profile/${user.id}`)}
+                    >
+                      <div className="col-span-1 text-sm text-slate-600">
+                        {index + 1}
+                      </div>
+                      <div className="col-span-4 truncate font-medium text-green-800">
+                        {user.username}
+                      </div>
+                      <div className="col-span-2 text-sm">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${roleBadgeStyles[user.role] || "border-slate-200 bg-slate-50 text-slate-700"}`}
+                        >
+                          {user.role}
+                        </span>
+                      </div>
+                      <div className="col-span-2 text-sm text-slate-600">
+                        {user.mandorUsername || "-"}
+                      </div>
+                    </button>
                     <div className="col-span-3 flex gap-2">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteClick(user);
-                        }}
+                        onClick={() => handleDeleteClick(user)}
                       >
                         <Trash2 className="size-4" />
                         Delete
@@ -342,17 +343,14 @@ export default function Page() {
                         <Button
                           type="button"
                           size="sm"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleAssignClick(user);
-                          }}
+                          onClick={() => handleAssignClick(user)}
                         >
                           <UserRoundCog className="size-4" />
                           {user.mandorUsername ? "Reassign" : "Assign"}
                         </Button>
                       ) : null}
                     </div>
-                  </button>
+                  </div>
                 ))
               )}
             </div>

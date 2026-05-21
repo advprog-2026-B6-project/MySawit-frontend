@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 const defaultHighlights = [
@@ -22,14 +22,36 @@ const defaultHighlights = [
   "Handles wage and payment processing.",
 ];
 
+const authChangeEvent = "mysawit-auth-change";
+
+function getAuthRoleSnapshot() {
+  return parseRoleFromToken(getStoredToken());
+}
+
+function getServerAuthRoleSnapshot() {
+  return null;
+}
+
+function subscribeToAuthChanges(callback) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(authChangeEvent, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(authChangeEvent, callback);
+  };
+}
+
 export default function Home() {
-  const [authRole, setAuthRole] = useState(() =>
-    parseRoleFromToken(getStoredToken()),
+  const authRole = useSyncExternalStore(
+    subscribeToAuthChanges,
+    getAuthRoleSnapshot,
+    getServerAuthRoleSnapshot,
   );
 
   const handleLogout = () => {
     clearStoredToken();
-    setAuthRole(null);
+    window.dispatchEvent(new Event(authChangeEvent));
     toast.success("You have been logged out.");
   };
 
