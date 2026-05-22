@@ -31,6 +31,7 @@ describe("MandorRiwayatPage", () => {
           hasilDate: "2026-03-10",
           weightKg: 110,
           status: "SUBMITTED",
+          photoUrls: ["foto-1.jpg", "foto-2.jpg"],
         },
       ]),
     });
@@ -41,6 +42,11 @@ describe("MandorRiwayatPage", () => {
 
     const profileLink = screen.getByRole("link", { name: /lihat profil buruh/i });
     expect(profileLink).toHaveAttribute("href", "/mandor/buruh/buruh-1");
+    expect(screen.getByText("Bukti foto")).toBeInTheDocument();
+    expect(screen.getByText("foto-1.jpg")).toBeInTheDocument();
+    expect(screen.getByText("foto-2.jpg")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /setujui/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /tolak/i })).toBeInTheDocument();
   });
 
   test("shows login notice and does not fetch when token is missing", async () => {
@@ -95,6 +101,127 @@ describe("MandorRiwayatPage", () => {
       expect.objectContaining({
         headers: { Authorization: `Bearer ${mandorToken}` },
       }),
+    );
+  });
+
+  test("opens approve dialog and sends approve request", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue([
+          {
+            id: "h1",
+            workerId: "buruh-1",
+            workerName: "Budi",
+            hasilDate: "2026-03-10",
+            weightKg: 110,
+            status: "SUBMITTED",
+            photoUrls: ["foto-1.jpg"],
+          },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue([
+          {
+            id: "h1",
+            workerId: "buruh-1",
+            workerName: "Budi",
+            hasilDate: "2026-03-10",
+            weightKg: 110,
+            status: "VERIFIED",
+          },
+        ]),
+      });
+
+    render(<MandorRiwayatPage />);
+
+    await waitFor(() => expect(screen.getByText("Budi")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /setujui/i }));
+    expect(screen.getByText("Setujui laporan panen")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /konfirmasi setujui/i }));
+
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
+        "http://localhost:8080/hasil-reports/mandor/h1/approve",
+        expect.objectContaining({
+          method: "PUT",
+          headers: { Authorization: `Bearer ${mandorToken}` },
+        }),
+      ),
+    );
+  });
+
+  test("opens reject dialog and sends rejection reason", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue([
+          {
+            id: "h1",
+            workerId: "buruh-1",
+            workerName: "Budi",
+            hasilDate: "2026-03-10",
+            weightKg: 110,
+            status: "SUBMITTED",
+            photoUrls: ["foto-1.jpg"],
+          },
+        ]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue({}),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: jest.fn().mockResolvedValue([
+          {
+            id: "h1",
+            workerId: "buruh-1",
+            workerName: "Budi",
+            hasilDate: "2026-03-10",
+            weightKg: 110,
+            status: "REJECTED",
+            rejectionReason: "Foto tidak jelas",
+            photoUrls: ["foto-1.jpg"],
+          },
+        ]),
+      });
+
+    render(<MandorRiwayatPage />);
+
+    await waitFor(() => expect(screen.getByText("Budi")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole("button", { name: /tolak/i }));
+    expect(screen.getByText("Tolak laporan panen")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Alasan penolakan"), {
+      target: { value: "Foto buram" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /konfirmasi tolak/i }));
+
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenNthCalledWith(
+        2,
+        "http://localhost:8080/hasil-reports/mandor/h1/reject",
+        expect.objectContaining({
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${mandorToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ rejectionReason: "Foto buram" }),
+        }),
+      ),
     );
   });
 });
