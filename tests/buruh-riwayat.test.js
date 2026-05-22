@@ -30,6 +30,7 @@ describe("BuruhRiwayatPage", () => {
           weightKg: 120,
           status: "SUBMITTED",
           news: "Panen blok A",
+          photoUrls: ["foto-1.jpg"],
         },
       ]),
     });
@@ -43,6 +44,31 @@ describe("BuruhRiwayatPage", () => {
         headers: { Authorization: `Bearer ${buruhToken}` },
       }),
     );
+  });
+
+  test("shows rejection reason when report is rejected", async () => {
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue([
+        {
+          id: "r1",
+          hasilDate: "2026-03-10",
+          weightKg: 120,
+          status: "REJECTED",
+          news: "Panen blok A",
+          rejectionReason: "Foto tidak jelas",
+          photoUrls: ["foto-1.jpg", "foto-2.jpg"],
+        },
+      ]),
+    });
+
+    render(<BuruhRiwayatPage />);
+
+    await waitFor(() => expect(screen.getByText("Foto tidak jelas")).toBeInTheDocument());
+    expect(screen.getByText(/alasan penolakan/i)).toBeInTheDocument();
+    expect(screen.getByText("Bukti foto")).toBeInTheDocument();
+    expect(screen.getByText("foto-1.jpg")).toBeInTheDocument();
+    expect(screen.getByText("foto-2.jpg")).toBeInTheDocument();
   });
 
   test("shows login notice and does not fetch when token is missing", async () => {
