@@ -12,6 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  getHasilAccessStatus,
+  HasilAccessGuard,
+} from "@/app/hasil/_components/accessguard";
+import { getAuthHeaders } from "@/lib/auth";
 import { Loader2, Save, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -27,20 +32,17 @@ export default function BuruhPanenPage() {
   const [formLocked, setFormLocked] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-
-  const getAuthHeader = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("Token login tidak ditemukan. Silakan login kembali.");
-    }
-    return { Authorization: `Bearer ${token}` };
-  };
+  const accessStatus = getHasilAccessStatus("BURUH");
 
   useEffect(() => {
+    if (accessStatus !== "authorized") {
+      return;
+    }
+
     const fetchTodayStatus = async () => {
       try {
         const response = await fetch(`${backendUrl}/hasil-reports/me/today`, {
-          headers: getAuthHeader(),
+          headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
@@ -58,7 +60,7 @@ export default function BuruhPanenPage() {
     };
 
     fetchTodayStatus();
-  }, []);
+  }, [accessStatus]);
 
   const onSubmit = async (event) => {
     event.preventDefault();
@@ -82,7 +84,7 @@ export default function BuruhPanenPage() {
 
       const response = await fetch(`${backendUrl}/hasil-reports`, {
         method: "POST",
-        headers: getAuthHeader(),
+        headers: getAuthHeaders(),
         body: formData,
       });
 
@@ -102,6 +104,16 @@ export default function BuruhPanenPage() {
   };
 
   if (loadingStatus) {
+    if (accessStatus !== "authorized") {
+      return (
+        <HasilAccessGuard
+          status={accessStatus}
+          requiredRole="BURUH"
+          title="Pelaporan Panen"
+        />
+      );
+    }
+
     return (
       <PageShell>
         <LoadingState label="Memuat status form panen..." />

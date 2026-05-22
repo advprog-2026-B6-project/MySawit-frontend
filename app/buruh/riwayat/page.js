@@ -12,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  getHasilAccessStatus,
+  HasilAccessGuard,
+} from "@/app/hasil/_components/accessguard";
+import { getAuthHeaders } from "@/lib/auth";
 import { Filter, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -31,14 +36,7 @@ export default function BuruhRiwayatPage() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const getAuthHeader = () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("Token login tidak ditemukan. Silakan login kembali.");
-    }
-    return { Authorization: `Bearer ${token}` };
-  };
+  const accessStatus = getHasilAccessStatus("BURUH");
 
   const buildQuery = () => {
     const params = new URLSearchParams();
@@ -51,13 +49,17 @@ export default function BuruhRiwayatPage() {
   };
 
   const fetchHistory = async () => {
+    if (accessStatus !== "authorized") {
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
       const response = await fetch(
         `${backendUrl}/hasil-reports/me/history${buildQuery()}`,
-        { headers: getAuthHeader() },
+        { headers: getAuthHeaders() },
       );
 
       if (!response.ok) {
@@ -75,14 +77,26 @@ export default function BuruhRiwayatPage() {
   };
 
   useEffect(() => {
-    fetchHistory();
+    if (accessStatus === "authorized") {
+      fetchHistory();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [accessStatus]);
 
   const handleFilterSubmit = (event) => {
     event.preventDefault();
     fetchHistory();
   };
+
+  if (accessStatus !== "authorized") {
+    return (
+      <HasilAccessGuard
+        status={accessStatus}
+        requiredRole="BURUH"
+        title="Riwayat Panen"
+      />
+    );
+  }
 
   return (
     <PageShell>
