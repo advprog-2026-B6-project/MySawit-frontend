@@ -3,9 +3,15 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import MandorRiwayatPage from "../app/mandor/riwayat/page";
 
 describe("MandorRiwayatPage", () => {
+  const createToken = (role) => {
+    const payload = Buffer.from(JSON.stringify({ role })).toString("base64url");
+    return `header.${payload}.signature`;
+  };
+  const mandorToken = createToken("MANDOR");
+  
   beforeEach(() => {
     process.env.NEXT_PUBLIC_BACKEND_URL = "http://example.com";
-    localStorage.setItem("token", "dummy-token");
+    localStorage.setItem("token", mandorToken);
   });
 
   afterEach(() => {
@@ -35,6 +41,26 @@ describe("MandorRiwayatPage", () => {
 
     const profileLink = screen.getByRole("link", { name: /lihat profil buruh/i });
     expect(profileLink).toHaveAttribute("href", "/mandor/buruh/buruh-1");
+  });
+
+  test("shows login notice and does not fetch when token is missing", async () => {
+    localStorage.clear();
+    global.fetch = jest.fn();
+
+    render(<MandorRiwayatPage />);
+
+    expect(screen.getByText("Silakan Login")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test("shows access denied and does not fetch for non-mandor role", async () => {
+    localStorage.setItem("token", createToken("BURUH"));
+    global.fetch = jest.fn();
+
+    render(<MandorRiwayatPage />);
+
+    expect(screen.getByText("Akses Ditolak")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   test("applies date and workerName filters in request query", async () => {
@@ -67,7 +93,7 @@ describe("MandorRiwayatPage", () => {
       2,
       "http://localhost:8080/hasil-reports/mandor/history?date=2026-03-15&workerName=Budi",
       expect.objectContaining({
-        headers: { Authorization: "Bearer dummy-token" },
+        headers: { Authorization: `Bearer ${mandorToken}` },
       }),
     );
   });
