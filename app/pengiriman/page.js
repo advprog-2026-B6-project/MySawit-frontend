@@ -119,11 +119,10 @@ export default function PengirimanPage() {
           </div>
         )}
 
-        <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
-          {(isMandor || (!isMandor && !isSupir && activeTab === "mandor")) && <MandorTab />}
-          {(isSupir || (!isMandor && !isSupir && activeTab === "supir")) && <SupirTab />}
-        </div>
+      <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+        {(isMandor || (!isMandor && !isSupir && activeTab === "mandor")) && <MandorTab />}
+        {(isSupir || (!isMandor && !isSupir && activeTab === "supir")) && <SupirTab />}
       </div>
-    </div>
+    </PageShell>
   );
 }

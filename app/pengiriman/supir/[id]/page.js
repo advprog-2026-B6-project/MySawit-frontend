@@ -133,24 +133,23 @@ export default function SupirProfilePage() {
               </p>
             </div>
           </div>
-        </SurfaceCard>
+        </div>
 
-        <SurfaceCard>
-          <SectionHeader
-            eyebrow="Pengiriman"
-            title="Pengiriman Supir"
-            description="Daftar muatan yang menjadi tanggung jawab supir dalam proses distribusi."
+      <SurfaceCard>
+        <SectionHeader
+          eyebrow="Pengiriman"
+          title="Pengiriman Supir"
+          description="Daftar muatan yang menjadi tanggung jawab supir dalam proses distribusi."
+        />
+        {loading ? (
+          <div className="py-6 text-sm text-slate-500">Memuat...</div>
+        ) : (
+          <TablePengirimanSupirReadonly
+            data={pengiriman}
+            loading={loading}
           />
-          {loading ? (
-            <div className="py-6 text-sm text-slate-500">Memuat...</div>
-          ) : (
-            <TablePengirimanSupirReadonly
-              data={pengiriman}
-              loading={loading}
-            />
-          )}
-        </SurfaceCard>
-      </div>
+        )}
+      </SurfaceCard>
     </PageShell>
   );
 }
