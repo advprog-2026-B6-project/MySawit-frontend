@@ -1,18 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { validateMuatan } from "../lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
+export default function FormBuatPengiriman({ supirList, onSubmit, loading, defaultMandorEmail = "" }) {
   const [formData, setFormData] = useState({
-    supirTrukId: "",
+    mandorEmail: defaultMandorEmail,
+    supirEmail: "",
     muatanKg: "",
     tujuan: "",
   });
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      mandorEmail: defaultMandorEmail,
+    }));
+  }, [defaultMandorEmail]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -35,14 +43,16 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
     }
 
     onSubmit({
-      supirTrukId: formData.supirTrukId,
+      mandorEmail: formData.mandorEmail,
+      supirEmail: formData.supirEmail,
       muatanKg: muatan,
       tujuan: formData.tujuan,
     });
 
     // Reset form
     setFormData({
-      supirTrukId: "",
+      mandorEmail: defaultMandorEmail,
+      supirEmail: "",
       muatanKg: "",
       tujuan: "",
     });
@@ -57,11 +67,11 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="supirTrukId">Supir Truk</Label>
+        <Label htmlFor="supirEmail">Supir Truk</Label>
         <select
-          id="supirTrukId"
-          name="supirTrukId"
-          value={formData.supirTrukId}
+          id="supirEmail"
+          name="supirEmail"
+          value={formData.supirEmail}
           onChange={handleChange}
           required
           data-testid="select-supir"
@@ -70,7 +80,7 @@ export default function FormBuatPengiriman({ supirList, onSubmit, loading }) {
           <option value="">-- Pilih Supir Truk --</option>
           {supirList &&
             supirList.map((supir) => (
-              <option key={supir.id} value={supir.id}>
+              <option key={supir.id} value={supir.username || supir.email || supir.nama}>
                 {supir.nama} ({supir.platNomorTruk})
               </option>
             ))}

@@ -3,9 +3,15 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import BuruhRiwayatPage from "../app/buruh/riwayat/page";
 
 describe("BuruhRiwayatPage", () => {
+  const createToken = (role) => {
+    const payload = Buffer.from(JSON.stringify({ role })).toString("base64url");
+    return `header.${payload}.signature`;
+  };
+  const buruhToken = createToken("BURUH");
+
   beforeEach(() => {
     process.env.NEXT_PUBLIC_BACKEND_URL = "http://example.com";
-    localStorage.setItem("token", "dummy-token");
+    localStorage.setItem("token", buruhToken);
   });
 
   afterEach(() => {
@@ -34,9 +40,29 @@ describe("BuruhRiwayatPage", () => {
     expect(global.fetch).toHaveBeenCalledWith(
       "http://localhost:8080/hasil-reports/me/history",
       expect.objectContaining({
-        headers: { Authorization: "Bearer dummy-token" },
+        headers: { Authorization: `Bearer ${buruhToken}` },
       }),
     );
+  });
+
+  test("shows login notice and does not fetch when token is missing", async () => {
+    localStorage.clear();
+    global.fetch = jest.fn();
+
+    render(<BuruhRiwayatPage />);
+
+    expect(screen.getByText("Silakan Login")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  test("shows access denied and does not fetch for non-buruh role", async () => {
+    localStorage.setItem("token", createToken("MANDOR"));
+    global.fetch = jest.fn();
+
+    render(<BuruhRiwayatPage />);
+
+    expect(screen.getByText("Akses Ditolak")).toBeInTheDocument();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   test("applies start-end-status filter in request query", async () => {
@@ -72,7 +98,7 @@ describe("BuruhRiwayatPage", () => {
       2,
       "http://localhost:8080/hasil-reports/me/history?startDate=2026-03-01&endDate=2026-03-31&status=SUBMITTED",
       expect.objectContaining({
-        headers: { Authorization: "Bearer dummy-token" },
+        headers: { Authorization: `Bearer ${buruhToken}` },
       }),
     );
   });

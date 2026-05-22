@@ -2,6 +2,7 @@
 
 import { formatDate } from "../lib/api";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const statusBadge = (status) => {
   const styles = {
@@ -16,18 +17,31 @@ const statusBadge = (status) => {
   return styles[status] ?? "bg-muted text-muted-foreground";
 };
 
-export default function TablePengirimanSupir({ data, loading, onUbahStatus, supirId }) {
+export default function TablePengirimanSupir({ data, loading, onUbahStatus }) {
+  const [reasonPopup, setReasonPopup] = useState({ open: false, note: "" });
+
   if (loading) {
     return <div className="py-6 text-sm text-muted-foreground">Memuat data pengiriman...</div>;
   }
 
   const getStatusButtons = (pengiriman) => {
-    if (pengiriman.status === "DISETUJUI") {
+    if (pengiriman.approval === "APPROVED") {
       return <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">Disetujui</span>;
     }
 
-    if (pengiriman.status === "DITOLAK") {
-      return <span className="text-sm font-semibold text-rose-500 dark:text-rose-300">Ditolak</span>;
+    if (pengiriman.approval === "REJECTED") {
+      return (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm font-semibold text-rose-500 dark:text-rose-300">Ditolak</span>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => setReasonPopup({ open: true, note: pengiriman.note || "Tidak ada alasan." })}
+          >
+            Lihat Alasan
+          </Button>
+        </div>
+      );
     }
 
     if (pengiriman.status === "TIBA") {
@@ -41,7 +55,7 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
             key="memuat"
             size="xs"
             variant="secondary"
-            onClick={() => onUbahStatus(pengiriman.id, supirId, "MEMUAT")}
+            onClick={() => onUbahStatus(pengiriman.id, "MEMUAT")}
             data-testid={`btn-memuat-${pengiriman.id}`}
           >
             Memuat
@@ -52,7 +66,7 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
             key="mengirim"
             size="xs"
             variant="default"
-            onClick={() => onUbahStatus(pengiriman.id, supirId, "MENGIRIM")}
+            onClick={() => onUbahStatus(pengiriman.id, "MENGIRIM")}
             data-testid={`btn-mengirim-${pengiriman.id}`}
           >
             Mengirim
@@ -63,7 +77,7 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
             key="tiba"
             size="xs"
             variant="outline"
-            onClick={() => onUbahStatus(pengiriman.id, supirId, "TIBA")}
+            onClick={() => onUbahStatus(pengiriman.id, "TIBA")}
             data-testid={`btn-tiba-${pengiriman.id}`}
           >
             Tiba
@@ -74,8 +88,9 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
   };
 
   return (
-    <div className="overflow-hidden rounded-lg border" data-testid="table-pengiriman-supir">
-      <table className="w-full text-sm">
+    <>
+      <div className="overflow-hidden rounded-lg border" data-testid="table-pengiriman-supir">
+        <table className="w-full text-sm">
         <thead className="bg-muted text-xs uppercase text-muted-foreground">
           <tr>
             <th className="px-4 py-3 text-left font-semibold">ID Pengiriman</th>
@@ -98,7 +113,7 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
                     {pengiriman.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.waktuDibuat)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.createdAt)}</td>
                 <td className="px-4 py-3">{getStatusButtons(pengiriman)}</td>
               </tr>
             ))
@@ -110,7 +125,22 @@ export default function TablePengirimanSupir({ data, loading, onUbahStatus, supi
             </tr>
           )}
         </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+
+      {reasonPopup.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-lg border bg-background p-5 shadow-lg">
+            <h3 className="text-base font-semibold">Alasan Penolakan</h3>
+            <p className="mt-3 text-sm text-muted-foreground">{reasonPopup.note}</p>
+            <div className="mt-4 flex justify-end">
+              <Button size="sm" onClick={() => setReasonPopup({ open: false, note: "" })}>
+                Tutup
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
