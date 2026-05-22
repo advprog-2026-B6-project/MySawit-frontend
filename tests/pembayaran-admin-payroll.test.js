@@ -1,6 +1,5 @@
 import React from "react";
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import AdminPayrollPage from "../app/pembayaran/admin/payroll/page";
 import { useRouter } from "next/navigation";
 
@@ -20,12 +19,18 @@ describe("AdminPayrollPage", () => {
         global.fetch = jest.fn();
         alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
         jest.spyOn(console, "error").mockImplementation(() => {});
+
+        
+        window.snap = {
+            pay: jest.fn(),
+        };
     });
 
     afterEach(() => {
         jest.clearAllMocks();
         alertMock.mockRestore();
         console.error.mockRestore();
+        delete window.snap;
     });
 
     const createToken = (role) => {
@@ -101,13 +106,20 @@ describe("AdminPayrollPage", () => {
             },
         ];
 
-        global.fetch
-            .mockResolvedValueOnce({
-                ok: true,
-                json: jest.fn().mockResolvedValue(mockPayrolls),
-            })
-            .mockResolvedValueOnce({ ok: true })
-            .mockResolvedValueOnce({ ok: true });
+
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue(mockPayrolls),
+        });
+
+
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue({ token: "mock-midtrans-token" }),
+        });
+
+
+        global.fetch.mockResolvedValueOnce({ ok: true });
 
         render(<AdminPayrollPage />);
 
@@ -118,15 +130,29 @@ describe("AdminPayrollPage", () => {
 
         await waitFor(() => expect(screen.getByText("johndoe")).toBeInTheDocument());
 
-        const approveButton = screen.getByRole("button", { name: /Setujui/i });
+
+        const approveButton = screen.getByRole("button", { name: /Setujui & Bayar/i });
         fireEvent.click(approveButton);
+
+
+        await waitFor(() => {
+            expect(window.snap.pay).toHaveBeenCalledWith(
+                "mock-midtrans-token",
+                expect.any(Object)
+            );
+        });
+
+
+        const midtransOptions = window.snap.pay.mock.calls[0][1];
+        await midtransOptions.onSuccess();
+
 
         await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
                 "http://localhost:8080/pembayaran/admin/payroll/1/approve",
                 expect.objectContaining({ method: "POST" })
             );
-            expect(alertMock).toHaveBeenCalledWith("Payroll disetujui dan dibayar via Payment Gateway simulasi.");
+            expect(alertMock).toHaveBeenCalledWith("Pembayaran berhasil diselesaikan via Midtrans!");
         });
     });
 
@@ -233,7 +259,7 @@ describe("AdminPayrollPage", () => {
 
         await waitFor(() => expect(screen.getByText("Alasan Penolakan")).toBeInTheDocument());
 
-        const reasonInput = screen.getByPlaceholderText("Berikan alasan spesifik...");
+        const reasonInput = screen.getByPlaceholderText("Berikan alasan spesifik mengapa payroll ditolak...");
         fireEvent.change(reasonInput, { target: { value: "Data panen tidak sesuai" } });
 
         const confirmButton = screen.getByRole("button", { name: /Konfirmasi Tolak/i });
@@ -274,6 +300,156 @@ describe("AdminPayrollPage", () => {
 
         await waitFor(() => {
             expect(screen.getByText("Gagal membuat payroll. Validasi input atau otoritas gagal.")).toBeInTheDocument();
+        });
+    });
+
+    
+    test("searches history with date filters and handles non-array response", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        
+        
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue({ some: "data" }), 
+        });
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        
+        
+        const dateInputs = document.querySelectorAll('input[type="date"]');
+        fireEvent.change(dateInputs[0], { target: { value: "2023-10-01" } }); 
+        fireEvent.change(dateInputs[1], { target: { value: "2023-10-31" } }); 
+
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => {
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining("startDate=2023-10-01&endDate=2023-10-31"),
+                expect.any(Object)
+            );
+            
+            expect(screen.getByText("Belum ada data untuk pencarian ini")).toBeInTheDocument();
+        });
+    });
+
+    
+    test("handles Midtrans checkout token failure", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        global.fetch
+            .mockResolvedValueOnce({ 
+                ok: true,
+                json: jest.fn().mockResolvedValue([{ id: "1", username: "johndoe", status: "PENDING" }]),
+            })
+            .mockResolvedValueOnce({ ok: false }); 
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => expect(screen.getByText("johndoe")).toBeInTheDocument());
+
+        fireEvent.click(screen.getByRole("button", { name: /Setujui & Bayar/i }));
+
+        await waitFor(() => {
+            expect(alertMock).toHaveBeenCalledWith("Gagal meminta token pembayaran dari server.");
+        });
+    });
+
+    
+    test("handles Midtrans callbacks (pending, error, close)", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        global.fetch
+            .mockResolvedValueOnce({
+                ok: true,
+                json: jest.fn().mockResolvedValue([{ id: "1", username: "johndoe", status: "PENDING" }]),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: jest.fn().mockResolvedValue({ token: "mock-token" }),
+            })
+            .mockResolvedValueOnce({ ok: true }); 
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => expect(screen.getByText("johndoe")).toBeInTheDocument());
+        fireEvent.click(screen.getByRole("button", { name: /Setujui & Bayar/i }));
+
+        await waitFor(() => expect(window.snap.pay).toHaveBeenCalled());
+
+        const midtransOptions = window.snap.pay.mock.calls[0][1];
+
+        
+        midtransOptions.onClose();
+        expect(alertMock).toHaveBeenCalledWith("Anda menutup popup tanpa menyelesaikan pembayaran. Status tetap PENDING.");
+
+        
+        midtransOptions.onError();
+        expect(alertMock).toHaveBeenCalledWith("Pembayaran gagal! Status dikembalikan ke PENDING.");
+
+        
+        await midtransOptions.onPending();
+        await waitFor(() => {
+            expect(alertMock).toHaveBeenCalledWith("Menunggu pembayaran...");
+        });
+    });
+
+    
+    test("can view reject reason modal for rejected payroll", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue([{ 
+                id: "1", 
+                username: "johndoe", 
+                status: "REJECTED", 
+                rejectReason: "Data panen manipulasi" 
+            }]),
+        });
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => expect(screen.getByText("johndoe")).toBeInTheDocument());
+        
+        expect(screen.queryByText("Data panen manipulasi")).not.toBeInTheDocument();
+
+        const viewButton = screen.getByRole("button", { name: /Lihat Alasan/i });
+        fireEvent.click(viewButton);
+
+        await waitFor(() => {
+            expect(screen.getByText("Data panen manipulasi")).toBeInTheDocument();
+        });
+
+        fireEvent.click(screen.getByRole("button", { name: /Tutup/i }));
+    });
+
+    
+    test("handles network exception gracefully in fetch operations", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        
+        
+        global.fetch.mockRejectedValueOnce(new Error("Network Offline"));
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText("Gagal terhubung ke server.")).toBeInTheDocument();
         });
     });
 });

@@ -23,6 +23,7 @@ import {
   History,
   Loader2,
   Save,
+  Scale,
   Search,
   User,
   X,
@@ -63,16 +64,26 @@ export default function AdminPayrollPage() {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [activeTab, setActiveTab] = useState("history");
+
+  // States for History
   const [searchUsername, setSearchUsername] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [payrolls, setPayrolls] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyError, setHistoryError] = useState("");
+
+  // States for Approve/Reject Actions
   const [actionLoading, setActionLoading] = useState(false);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [selectedPayrollId, setSelectedPayrollId] = useState(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  // State for viewing rejection reason
+  const [viewReasonModalOpen, setViewReasonModalOpen] = useState(false);
+  const [currentRejectReason, setCurrentRejectReason] = useState("");
+
+  // States for Create
   const [createForm, setCreateForm] = useState({
     username: "",
     startDate: "",
@@ -105,6 +116,22 @@ export default function AdminPayrollPage() {
       router.push("/login");
     }
   }, [router]);
+
+  // Load Midtrans Snap script dynamically
+  useEffect(() => {
+    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+    const script = document.createElement("script");
+    script.src = snapScript;
+    script.setAttribute("data-client-key", clientKey || "");
+    script.async = true;
+
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
 
   const handleSearch = async (event) => {
     event.preventDefault();
@@ -151,33 +178,73 @@ export default function AdminPayrollPage() {
     setActionLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const approveRes = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${id}/approve`,
+      const currentPayroll = payrolls.find((p) => p.id === id);
+
+      const checkoutRes = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/checkout`,
         {
           method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderId: id,
+            amount: currentPayroll?.totalWage,
+            customerName: currentPayroll?.username,
+            customerEmail: currentPayroll?.username + "@mysawit.com",
+          }),
         },
       );
 
-      if (approveRes.ok) {
-        await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/webhook/payment`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ payrollId: id, status: "SUCCESS" }),
-          },
-        );
-
-        setPayrolls(
-          payrolls.map((payroll) =>
-            payroll.id === id ? { ...payroll, status: "ACCEPTED" } : payroll,
-          ),
-        );
-        alert("Payroll disetujui dan dibayar via Payment Gateway simulasi.");
-      } else {
-        alert("Gagal menyetujui payroll.");
+      if (!checkoutRes.ok) {
+        alert("Gagal meminta token pembayaran dari server.");
+        setActionLoading(false);
+        return;
       }
+
+      const checkoutData = await checkoutRes.json();
+
+      window.snap.pay(checkoutData.token, {
+        onSuccess: async function () {
+          await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${id}/approve`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setPayrolls(
+            payrolls.map((p) =>
+              p.id === id ? { ...p, status: "ACCEPTED" } : p,
+            ),
+          );
+          alert("Pembayaran berhasil diselesaikan via Midtrans!");
+        },
+        onPending: async function () {
+          await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${id}/approve`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setPayrolls(
+            payrolls.map((p) =>
+              p.id === id ? { ...p, status: "ACCEPTED" } : p,
+            ),
+          );
+          alert("Menunggu pembayaran...");
+        },
+        onError: function () {
+          alert("Pembayaran gagal! Status dikembalikan ke PENDING.");
+        },
+        onClose: function () {
+          alert(
+            "Anda menutup popup tanpa menyelesaikan pembayaran. Status tetap PENDING.",
+          );
+        },
+      });
     } catch (err) {
       alert(`Error: ${err.message}`);
     } finally {
@@ -208,7 +275,7 @@ export default function AdminPayrollPage() {
         setPayrolls(
           payrolls.map((payroll) =>
             payroll.id === selectedPayrollId
-              ? { ...payroll, status: "REJECTED" }
+              ? { ...payroll, status: "REJECTED", rejectReason: rejectReason }
               : payroll,
           ),
         );
@@ -222,6 +289,16 @@ export default function AdminPayrollPage() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const openRejectModal = (id) => {
+    setSelectedPayrollId(id);
+    setRejectModalOpen(true);
+  };
+
+  const openViewReasonModal = (reason) => {
+    setCurrentRejectReason(reason || "Tidak ada alasan spesifik diberikan.");
+    setViewReasonModalOpen(true);
   };
 
   const handleCreateSubmit = async (event) => {
@@ -254,9 +331,16 @@ export default function AdminPayrollPage() {
         const data = await res.json();
         setCreateMessage({
           type: "success",
-          text: `Payroll berhasil dibuat dengan total: Rp ${data.totalAmount?.toLocaleString("id-ID")}`,
+          text: `Payroll berhasil dibuat dengan total: Rp ${data.totalAmount?.toLocaleString(
+            "id-ID",
+          )}`,
         });
-        setCreateForm({ username: "", startDate: "", endDate: "", totalKg: "" });
+        setCreateForm({
+          username: "",
+          startDate: "",
+          endDate: "",
+          totalKg: "",
+        });
       } else {
         setCreateMessage({
           type: "error",
@@ -287,7 +371,7 @@ export default function AdminPayrollPage() {
       <PageHero
         eyebrow="Pembayaran"
         title="Manajemen Payroll Admin"
-        description="Kelola perhitungan upah, tinjau histori pembayaran pekerja, dan proses persetujuan payroll."
+        description="Pantau histori pembayaran pekerja, kelola perhitungan upah, dan proses persetujuan payroll via Midtrans."
       />
 
       <div className="mb-6 flex flex-wrap gap-2 border-b border-green-100 pb-3">
@@ -388,7 +472,7 @@ export default function AdminPayrollPage() {
             ) : payrolls.length === 0 ? (
               <EmptyState
                 title="Belum ada data untuk pencarian ini"
-              description="Masukkan nama pengguna pekerja untuk menampilkan riwayat pembayaran."
+                description="Masukkan nama pengguna pekerja untuk menampilkan riwayat pembayaran."
               />
             ) : (
               <div className="overflow-hidden rounded-3xl border border-green-100 bg-white">
@@ -445,21 +529,27 @@ export default function AdminPayrollPage() {
                                   disabled={actionLoading}
                                 >
                                   <CheckSquare className="size-4" />
-                                  Setujui
+                                  Setujui & Bayar
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => {
-                                    setSelectedPayrollId(payroll.id);
-                                    setRejectModalOpen(true);
-                                  }}
+                                  onClick={() => openRejectModal(payroll.id)}
                                   disabled={actionLoading}
                                 >
                                   <XCircle className="size-4" />
                                   Tolak
                                 </Button>
                               </div>
+                            ) : payroll.status === "REJECTED" ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openViewReasonModal(payroll.rejectReason)}
+                              >
+                                <FileText className="size-4" />
+                                Lihat Alasan
+                              </Button>
                             ) : (
                               <span className="text-xs text-slate-500">-</span>
                             )}
@@ -532,7 +622,7 @@ export default function AdminPayrollPage() {
 
             <FieldWithIcon
               label="Total Massa Dipanen/Diolah (Kg)"
-              icon={<FileText className="size-4" />}
+              icon={<Scale className="size-4" />}
             >
               <Input
                 type="number"
@@ -556,17 +646,22 @@ export default function AdminPayrollPage() {
             </Button>
 
             <AlertMessage type="info">
-              Setiap payroll yang dibuat otomatis berstatus{" "}
-              <strong>PENDING (Draft)</strong>. Total kg dikalikan tarif per kg,
-              lalu dikalikan 90% sebagai upah bersih.
+              <span className="font-semibold block mb-2">Transparansi Kalkulasi Upah</span>
+              Setiap payroll yang dibuat otomatis berstatus <strong>PENDING (Draft)</strong>. Kalkulasi yang diterapkan oleh sistem:
+              <ul className="list-disc ml-5 mt-2 space-y-1">
+                <li><strong>Total Kg</strong> dikalikan dengan <strong>Tarif per Kg</strong> (sesuai role).</li>
+                <li>Hasilnya dikalikan <strong>90%</strong> (0.90) sebagai upah bersih.</li>
+                <li>Semua perhitungan desimal menggunakan <code>RoundingMode.HALF_UP</code> untuk presisi yang akurat.</li>
+              </ul>
             </AlertMessage>
           </form>
         </SurfaceCard>
       )}
 
+      {/* Reject Reason Input Modal */}
       {rejectModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4">
-          <div className="w-full max-w-md rounded-3xl border border-green-100 bg-white p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-green-100 bg-white p-6 shadow-xl animate-in zoom-in-95 duration-200">
             <div className="mb-5 flex items-start justify-between gap-4">
               <h3 className="text-lg font-bold text-slate-900">Tolak Payroll</h3>
               <Button
@@ -586,7 +681,7 @@ export default function AdminPayrollPage() {
                   onChange={(event) => setRejectReason(event.target.value)}
                   rows={4}
                   required
-                  placeholder="Berikan alasan spesifik..."
+                  placeholder="Berikan alasan spesifik mengapa payroll ditolak..."
                 />
               </div>
               <div className="flex justify-end gap-3">
@@ -597,7 +692,7 @@ export default function AdminPayrollPage() {
                 >
                   Batal
                 </Button>
-                <Button type="submit" disabled={actionLoading}>
+                <Button type="submit" disabled={actionLoading} variant="destructive">
                   {actionLoading ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : null}
@@ -605,6 +700,36 @@ export default function AdminPayrollPage() {
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {/* View Reject Reason Modal */}
+      {viewReasonModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-green-100 bg-white p-6 shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <h3 className="text-lg font-bold text-slate-900">Alasan Penolakan</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewReasonModalOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 mb-6 whitespace-pre-wrap text-sm">
+              {currentRejectReason}
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setViewReasonModalOpen(false)}
+              >
+                Tutup
+              </Button>
+            </div>
           </div>
         </div>
       ) : null}
