@@ -20,7 +20,7 @@ describe("AdminPayrollPage", () => {
         alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
         jest.spyOn(console, "error").mockImplementation(() => {});
 
-        // Mock window.snap untuk Midtrans
+        
         window.snap = {
             pay: jest.fn(),
         };
@@ -300,6 +300,155 @@ describe("AdminPayrollPage", () => {
 
         await waitFor(() => {
             expect(screen.getByText("Gagal membuat payroll. Validasi input atau otoritas gagal.")).toBeInTheDocument();
+        });
+    });
+
+    
+    test("searches history with date filters and handles non-array response", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        
+        
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue({ some: "data" }), 
+        });
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        
+        
+        const dateInputs = document.querySelectorAll('input[type="date"]');
+        fireEvent.change(dateInputs[0], { target: { value: "2023-10-01" } }); 
+        fireEvent.change(dateInputs[1], { target: { value: "2023-10-31" } }); 
+
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => {
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining("startDate=2023-10-01&endDate=2023-10-31"),
+                expect.any(Object)
+            );
+            
+            expect(screen.getByText("Belum ada data untuk pencarian ini")).toBeInTheDocument();
+        });
+    });
+
+    
+    test("handles Midtrans checkout token failure", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        global.fetch
+            .mockResolvedValueOnce({ 
+                ok: true,
+                json: jest.fn().mockResolvedValue([{ id: "1", username: "johndoe", status: "PENDING" }]),
+            })
+            .mockResolvedValueOnce({ ok: false }); 
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => expect(screen.getByText("johndoe")).toBeInTheDocument());
+
+        fireEvent.click(screen.getByRole("button", { name: /Setujui & Bayar/i }));
+
+        await waitFor(() => {
+            expect(alertMock).toHaveBeenCalledWith("Gagal meminta token pembayaran dari server.");
+        });
+    });
+
+    
+    test("handles Midtrans callbacks (pending, error, close)", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        global.fetch
+            .mockResolvedValueOnce({
+                ok: true,
+                json: jest.fn().mockResolvedValue([{ id: "1", username: "johndoe", status: "PENDING" }]),
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                json: jest.fn().mockResolvedValue({ token: "mock-token" }),
+            })
+            .mockResolvedValueOnce({ ok: true }); 
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => expect(screen.getByText("johndoe")).toBeInTheDocument());
+        fireEvent.click(screen.getByRole("button", { name: /Setujui & Bayar/i }));
+
+        await waitFor(() => expect(window.snap.pay).toHaveBeenCalled());
+
+        const midtransOptions = window.snap.pay.mock.calls[0][1];
+
+        
+        midtransOptions.onClose();
+        expect(alertMock).toHaveBeenCalledWith("Anda menutup popup tanpa menyelesaikan pembayaran. Status tetap PENDING.");
+
+        
+        midtransOptions.onError();
+        expect(alertMock).toHaveBeenCalledWith("Pembayaran gagal! Status dikembalikan ke PENDING.");
+
+        
+        await midtransOptions.onPending();
+        await waitFor(() => {
+            expect(alertMock).toHaveBeenCalledWith("Menunggu pembayaran...");
+        });
+    });
+
+    
+    test("can view reject reason modal for rejected payroll", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        global.fetch.mockResolvedValueOnce({
+            ok: true,
+            json: jest.fn().mockResolvedValue([{ 
+                id: "1", 
+                username: "johndoe", 
+                status: "REJECTED", 
+                rejectReason: "Data panen manipulasi" 
+            }]),
+        });
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => expect(screen.getByText("Data panen manipulasi", { exact: false })).not.toBeVisible());
+
+        const viewButton = screen.getByRole("button", { name: /Lihat Alasan/i });
+        fireEvent.click(viewButton);
+
+        await waitFor(() => {
+            expect(screen.getByText("Data panen manipulasi")).toBeInTheDocument();
+        });
+
+        
+        fireEvent.click(screen.getByRole("button", { name: /Tutup/i }));
+    });
+
+    
+    test("handles network exception gracefully in fetch operations", async () => {
+        localStorage.setItem("token", createToken("ADMIN"));
+        
+        
+        global.fetch.mockRejectedValueOnce(new Error("Network Offline"));
+
+        render(<AdminPayrollPage />);
+        await waitFor(() => expect(screen.getByText("Manajemen Payroll Admin")).toBeInTheDocument());
+
+        fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
+        fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
+
+        await waitFor(() => {
+            expect(screen.getByText("Gagal terhubung ke server.")).toBeInTheDocument();
         });
     });
 });
