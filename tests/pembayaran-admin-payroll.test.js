@@ -421,7 +421,9 @@ describe("AdminPayrollPage", () => {
         fireEvent.change(screen.getByPlaceholderText("Masukkan username pekerja"), { target: { value: "johndoe" } });
         fireEvent.click(screen.getByRole("button", { name: /Cari Histori/i }));
 
-        await waitFor(() => expect(screen.getByText("Data panen manipulasi", { exact: false })).not.toBeVisible());
+        await waitFor(() => expect(screen.getByText("johndoe")).toBeInTheDocument());
+        
+        expect(screen.queryByText("Data panen manipulasi")).not.toBeInTheDocument();
 
         const viewButton = screen.getByRole("button", { name: /Lihat Alasan/i });
         fireEvent.click(viewButton);
@@ -430,7 +432,6 @@ describe("AdminPayrollPage", () => {
             expect(screen.getByText("Data panen manipulasi")).toBeInTheDocument();
         });
 
-        
         fireEvent.click(screen.getByRole("button", { name: /Tutup/i }));
     });
 
