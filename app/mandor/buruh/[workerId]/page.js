@@ -229,6 +229,25 @@ export default function MandorWorkerHistoryPage() {
                 <p className="mt-4 text-sm leading-6 text-slate-600">
                   {report.news || "-"}
                 </p>
+                <div className="mt-4 rounded-2xl border border-green-100 bg-green-50/60 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-green-700">
+                    Bukti foto
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2 text-sm text-slate-700">
+                    {Array.isArray(report.photoUrls) && report.photoUrls.length > 0 ? (
+                      report.photoUrls.map((photoUrl) => (
+                        <span
+                          key={photoUrl}
+                          className="break-all rounded-full border border-green-100 bg-white px-3 py-2"
+                        >
+                          {photoUrl}
+                        </span>
+                      ))
+                    ) : (
+                      <span>-</span>
+                    )}
+                  </div>
+                </div>
               </article>
             ))}
           </div>

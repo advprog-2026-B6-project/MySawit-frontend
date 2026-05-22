@@ -209,6 +209,11 @@ export default function BuruhRiwayatPage() {
                 <p className="mt-4 text-sm leading-6 text-slate-600">
                   {report.news || "-"}
                 </p>
+                {report.status === "REJECTED" && report.rejectionReason ? (
+                  <AlertMessage type="warning" className="mt-4">
+                    <span className="font-semibold">Alasan penolakan:</span> {report.rejectionReason}
+                  </AlertMessage>
+                ) : null}
               </article>
             ))}
           </div>
