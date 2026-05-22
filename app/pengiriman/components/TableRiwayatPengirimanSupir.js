@@ -15,13 +15,13 @@ const statusBadge = (status) => {
   return styles[status] ?? "bg-muted text-muted-foreground";
 };
 
-export default function TablePengirimanSupirReadonly({ data, loading }) {
+export default function TableRiwayatPengirimanSupir({ data, loading }) {
   if (loading) {
-    return <div className="py-6 text-sm text-muted-foreground">Memuat data pengiriman...</div>;
+    return <div className="py-6 text-sm text-muted-foreground">Memuat riwayat pengiriman...</div>;
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border" data-testid="table-pengiriman-supir-readonly">
+    <div className="overflow-hidden rounded-lg border" data-testid="table-riwayat-pengiriman">
       <table className="w-full text-sm">
         <thead className="bg-muted text-xs uppercase text-muted-foreground">
           <tr>
@@ -29,9 +29,8 @@ export default function TablePengirimanSupirReadonly({ data, loading }) {
             <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
             <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
             <th className="px-4 py-3 text-left font-semibold">Status</th>
-            <th className="px-4 py-3 text-left font-semibold">Approval</th>
-            <th className="px-4 py-3 text-left font-semibold">Note</th>
-            <th className="px-4 py-3 text-left font-semibold">Waktu Dibuat</th>
+            <th className="px-4 py-3 text-left font-semibold">Tanggal</th>
+            <th className="px-4 py-3 text-left font-semibold">Alasan Penolakan</th>
           </tr>
         </thead>
         <tbody className="divide-y">
@@ -46,15 +45,18 @@ export default function TablePengirimanSupirReadonly({ data, loading }) {
                     {pengiriman.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.approval || "-"}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.note || "-"}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.createdAt)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {formatDate(pengiriman.waktuDiperbarui || pengiriman.waktuDibuat)}
+                </td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">
+                  {pengiriman.alasanPenolakan ? pengiriman.alasanPenolakan : "-"}
+                </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan="7" className="px-4 py-6 text-center text-sm text-muted-foreground">
-                Belum ada pengiriman untuk supir ini
+              <td colSpan="6" className="px-4 py-6 text-center text-sm text-muted-foreground">
+                Tidak ada riwayat pengiriman yang sesuai.
               </td>
             </tr>
           )}

@@ -4,28 +4,25 @@ import { useState, useEffect, useCallback } from "react";
 import {
   fetchSupirBertugas,
   fetchAllSupir,
-  fetchPengirimanBerlangsung,
-  buatPengiriman,
-  approvePengiriman,
-  rejectPengiriman,
+  fetchMyMandorAssignments,
+  buatPenugasanPengiriman,
+  updateAssignmentApproval,
 } from "../lib/api";
 import Alert from "./Alert";
 import TableSupirBertugas from "./TableSupirBertugas";
 import TablePengirimanBerlangsung from "./TablePengirimanBerlangsung";
 import FormBuatPengiriman from "./FormBuatPengiriman";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default function MandorTab() {
   const [supirBertugas, setSupirBertugas] = useState([]);
-  const [allSupir, setAllSupir] = useState([]);
-  const [pengirimanBerlangsung, setPengirimanBerlangsung] = useState([]);
+  const [supirList, setSupirList] = useState([]);
+  const [assignmentList, setAssignmentList] = useState([]);
   const [loadingSupir, setLoadingSupir] = useState(false);
-  const [loadingPengiriman, setLoadingPengiriman] = useState(false);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [loadingForm, setLoadingForm] = useState(false);
   const [loadingApproval, setLoadingApproval] = useState(null);
-  const [mandorId, setMandorId] = useState("");
+  const [mandorEmail, setMandorEmail] = useState("");
   const [alert, setAlert] = useState({ message: "", type: "success" });
 
   const showAlert = (message, type = "success") => {
@@ -49,41 +46,43 @@ export default function MandorTab() {
     }
   }, []);
 
-  const loadAllSupir = useCallback(async () => {
+  const loadSupirList = useCallback(async () => {
     try {
       const result = await fetchAllSupir();
       if (result.success) {
-        setAllSupir(result.data || []);
+        setSupirList(result.data || []);
+      } else {
+        showAlert(result.message || "Gagal memuat daftar supir", "error");
       }
     } catch (error) {
-      console.error("Gagal memuat data supir:", error);
+      showAlert("Gagal memuat daftar supir: " + error.message, "error");
     }
   }, []);
 
-  const loadPengirimanBerlangsung = useCallback(async () => {
-    setLoadingPengiriman(true);
+  const loadAssignments = useCallback(async () => {
+    setLoadingAssignments(true);
     try {
-      const result = await fetchPengirimanBerlangsung();
+      const result = await fetchMyMandorAssignments();
       if (result.success) {
-        setPengirimanBerlangsung(result.data || []);
+        setAssignmentList(result.data || []);
       } else {
-        showAlert(result.message || "Gagal memuat data pengiriman", "error");
+        showAlert(result.message || "Gagal memuat data penugasan", "error");
       }
     } catch (error) {
-      showAlert("Gagal memuat data pengiriman: " + error.message, "error");
+      showAlert("Gagal memuat data penugasan: " + error.message, "error");
     } finally {
-      setLoadingPengiriman(false);
+      setLoadingAssignments(false);
     }
   }, []);
 
   const handleBuatPengiriman = async (data) => {
     setLoadingForm(true);
     try {
-      const result = await buatPengiriman(data);
+      const result = await buatPenugasanPengiriman(data);
       if (result.success) {
-        showAlert("Pengiriman berhasil dibuat!");
+        showAlert("Penugasan pengiriman berhasil dibuat!");
         loadSupirBertugas();
-        loadPengirimanBerlangsung();
+        loadAssignments();
       } else {
         showAlert(result.message || "Gagal membuat pengiriman", "error");
       }
@@ -94,53 +93,67 @@ export default function MandorTab() {
     }
   };
 
-  const handleApprove = async (pengirimanId) => {
-    if (!mandorId.trim()) {
-      showAlert("Masukkan Mandor ID sebelum menyetujui pengiriman", "error");
-      return;
-    }
-    setLoadingApproval(pengirimanId);
+  const handleApprove = async (assignmentId) => {
+    setLoadingApproval(assignmentId);
     try {
-      const result = await approvePengiriman(pengirimanId, Number(mandorId));
+      const result = await updateAssignmentApproval(assignmentId, "APPROVED");
       if (result.success) {
-        showAlert("Pengiriman berhasil disetujui!");
-        loadPengirimanBerlangsung();
+        showAlert("Penugasan berhasil disetujui!");
+        loadAssignments();
       } else {
-        showAlert(result.message || "Gagal menyetujui pengiriman", "error");
+        showAlert(result.message || "Gagal menyetujui penugasan", "error");
       }
     } catch (error) {
-      showAlert("Gagal menyetujui pengiriman: " + error.message, "error");
+      showAlert("Gagal menyetujui penugasan: " + error.message, "error");
     } finally {
       setLoadingApproval(null);
     }
   };
 
-  const handleReject = async (pengirimanId, alasanPenolakan) => {
-    if (!mandorId.trim()) {
-      showAlert("Masukkan Mandor ID sebelum menolak pengiriman", "error");
-      return;
-    }
-    setLoadingApproval(pengirimanId);
+  const handleReject = async (assignmentId, note) => {
+    setLoadingApproval(assignmentId);
     try {
-      const result = await rejectPengiriman(pengirimanId, Number(mandorId), alasanPenolakan);
+      const result = await updateAssignmentApproval(assignmentId, "REJECTED", note);
       if (result.success) {
-        showAlert("Pengiriman berhasil ditolak");
-        loadPengirimanBerlangsung();
+        showAlert("Penugasan berhasil ditolak");
+        loadAssignments();
       } else {
-        showAlert(result.message || "Gagal menolak pengiriman", "error");
+        showAlert(result.message || "Gagal menolak penugasan", "error");
       }
     } catch (error) {
-      showAlert("Gagal menolak pengiriman: " + error.message, "error");
+      showAlert("Gagal menolak penugasan: " + error.message, "error");
     } finally {
       setLoadingApproval(null);
     }
   };
 
   useEffect(() => {
+    const storedEmail = localStorage.getItem("userEmail") || localStorage.getItem("username");
+    if (storedEmail) {
+      setMandorEmail(storedEmail);
+    }
+
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const [, payload] = token.split(".");
+        if (payload) {
+          const parsed = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+          const tokenEmail = parsed.email || parsed.username || parsed.sub;
+          if (tokenEmail) {
+            setMandorEmail(tokenEmail);
+            localStorage.setItem("userEmail", tokenEmail);
+          }
+        }
+      } catch {
+        // ignore invalid token payload
+      }
+    }
+
     loadSupirBertugas();
-    loadAllSupir();
-    loadPengirimanBerlangsung();
-  }, [loadSupirBertugas, loadAllSupir, loadPengirimanBerlangsung]);
+    loadSupirList();
+    loadAssignments();
+  }, [loadSupirBertugas, loadSupirList, loadAssignments]);
 
   return (
     <div className="space-y-8">
@@ -150,7 +163,7 @@ export default function MandorTab() {
         onClose={() => setAlert({ message: "", type: "success" })}
       />
 
-      <section className="space-y-4">
+      {/* <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-semibold">Daftar Supir Truk Bertugas</h2>
@@ -165,19 +178,7 @@ export default function MandorTab() {
           </Button>
         </div>
         <TableSupirBertugas data={supirBertugas} loading={loadingSupir} />
-      </section>
-
-      <section className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold">Tugaskan Supir Truk</h2>
-          <p className="text-sm text-muted-foreground">Buat pengiriman baru dan atur muatan.</p>
-        </div>
-        <FormBuatPengiriman
-          supirList={allSupir}
-          onSubmit={handleBuatPengiriman}
-          loading={loadingForm}
-        />
-      </section>
+      </section> */}
 
       <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -187,36 +188,35 @@ export default function MandorTab() {
           </div>
           <Button
             variant="secondary"
-            onClick={loadPengirimanBerlangsung}
+            onClick={loadAssignments}
             data-testid="btn-refresh-pengiriman"
           >
             Refresh
           </Button>
         </div>
-        <div className="grid gap-3 rounded-lg border bg-card/50 p-4 text-card-foreground shadow-sm sm:grid-cols-[minmax(0,320px)_1fr]">
-          <div className="space-y-2">
-            <Label htmlFor="mandorId">Mandor ID</Label>
-            <Input
-              id="mandorId"
-              type="number"
-              placeholder="Masukkan Mandor ID"
-              value={mandorId}
-              onChange={(e) => setMandorId(e.target.value)}
-            />
-          </div>
-          <div className="text-xs text-muted-foreground sm:pt-8">
-            Mandor ID diperlukan untuk menyetujui atau menolak hasil pengiriman yang sudah tiba.
-          </div>
-        </div>
         <TablePengirimanBerlangsung
-          data={pengirimanBerlangsung}
-          loading={loadingPengiriman}
-          mandorId={mandorId}
+          data={assignmentList}
+          loading={loadingAssignments}
           onApprove={handleApprove}
           onReject={handleReject}
           loadingApprovalId={loadingApproval}
         />
       </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold">Tugaskan Supir Truk</h2>
+          <p className="text-sm text-muted-foreground">Buat pengiriman baru dan atur muatan.</p>
+        </div>
+        <FormBuatPengiriman
+          supirList={supirList}
+          defaultMandorEmail={mandorEmail}
+          onSubmit={handleBuatPengiriman}
+          loading={loadingForm}
+        />
+      </section>
+
+
     </div>
   );
 }

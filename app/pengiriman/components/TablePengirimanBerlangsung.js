@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { formatDate } from "../lib/api";
 import { Button } from "@/components/ui/button";
@@ -21,7 +22,6 @@ const statusBadge = (status) => {
 export default function TablePengirimanBerlangsung({
   data,
   loading,
-  mandorId,
   onApprove,
   onReject,
   loadingApprovalId,
@@ -63,13 +63,13 @@ export default function TablePengirimanBerlangsung({
         <thead className="bg-muted text-xs uppercase text-muted-foreground">
           <tr>
             <th className="px-4 py-3 text-left font-semibold">ID</th>
-            <th className="px-4 py-3 text-left font-semibold">Supir Truk ID</th>
+            <th className="px-4 py-3 text-left font-semibold">Supir</th>
             <th className="px-4 py-3 text-left font-semibold">Muatan (kg)</th>
             <th className="px-4 py-3 text-left font-semibold">Tujuan</th>
             <th className="px-4 py-3 text-left font-semibold">Status</th>
-            <th className="px-4 py-3 text-left font-semibold">Alasan Penolakan</th>
+            <th className="px-4 py-3 text-left font-semibold">Approval</th>
+            <th className="px-4 py-3 text-left font-semibold">Note</th>
             <th className="px-4 py-3 text-left font-semibold">Waktu Dibuat</th>
-            <th className="px-4 py-3 text-left font-semibold">Waktu Diperbarui</th>
             <th className="px-4 py-3 text-left font-semibold">Aksi</th>
           </tr>
         </thead>
@@ -78,7 +78,14 @@ export default function TablePengirimanBerlangsung({
             data.map((pengiriman) => (
               <tr key={pengiriman.id} className="hover:bg-muted/50">
                 <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.id}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.supirTrukId}</td>
+                <td className="px-4 py-3 text-xs">
+                  <Link
+                    href={`/pengiriman/supir-email/${encodeURIComponent(pengiriman.supirEmail)}`}
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                  >
+                    {pengiriman.supirEmail}
+                  </Link>
+                </td>
                 <td className="px-4 py-3 font-medium">{pengiriman.muatanKg} kg</td>
                 <td className="px-4 py-3">{pengiriman.tujuan}</td>
                 <td className="px-4 py-3">
@@ -87,18 +94,18 @@ export default function TablePengirimanBerlangsung({
                   </span>
                 </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {pengiriman.alasanPenolakan ? pengiriman.alasanPenolakan : "-"}
+                  {pengiriman.approval || "-"}
                 </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.waktuDibuat)}</td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.waktuDiperbarui)}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{pengiriman.note || "-"}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(pengiriman.createdAt)}</td>
                 <td className="px-4 py-3">
-                  {pengiriman.status === "TIBA" && !rejectingId && (
+                  {pengiriman.status === "TIBA" && !pengiriman.approval && !rejectingId && (
                     <div className="flex flex-wrap gap-2">
                       <Button
                         size="xs"
                         variant="default"
                         onClick={() => onApprove?.(pengiriman.id)}
-                        disabled={!mandorId || loadingApprovalId === pengiriman.id}
+                        disabled={loadingApprovalId === pengiriman.id}
                       >
                         {loadingApprovalId === pengiriman.id ? "Memproses..." : "Setujui"}
                       </Button>
@@ -106,13 +113,13 @@ export default function TablePengirimanBerlangsung({
                         size="xs"
                         variant="outline"
                         onClick={() => handleStartReject(pengiriman.id)}
-                        disabled={!mandorId || loadingApprovalId === pengiriman.id}
+                        disabled={loadingApprovalId === pengiriman.id}
                       >
                         Tolak
                       </Button>
                     </div>
                   )}
-                  {pengiriman.status === "TIBA" && rejectingId === pengiriman.id && (
+                  {pengiriman.status === "TIBA" && !pengiriman.approval && rejectingId === pengiriman.id && (
                     <div className="space-y-2">
                       <Textarea
                         value={rejectReason}
@@ -144,7 +151,7 @@ export default function TablePengirimanBerlangsung({
                       </div>
                     </div>
                   )}
-                  {pengiriman.status !== "TIBA" && (
+                  {(pengiriman.status !== "TIBA" || pengiriman.approval) && (
                     <span className="text-xs text-muted-foreground">-</span>
                   )}
                 </td>

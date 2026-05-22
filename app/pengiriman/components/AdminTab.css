@@ -1,0 +1,67 @@
+.admin-tab {
+  --panel-border: color-mix(in srgb, currentColor 12%, transparent);
+  --panel-bg: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--card, #ffffff) 92%, #d9efe3 8%),
+    color-mix(in srgb, var(--card, #ffffff) 96%, #f5ead5 4%)
+  );
+}
+
+.admin-tab__panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 1rem;
+  background: var(--panel-bg);
+}
+
+.admin-tab__heading h2 {
+  letter-spacing: 0.01em;
+}
+
+.admin-tab__filters {
+  align-items: end;
+}
+
+.admin-tab__filter-btn {
+  min-width: 130px;
+}
+
+.admin-tab__table-wrap {
+  border-radius: 14px;
+}
+
+.admin-tab__table-shell {
+  border-color: var(--panel-border);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.04);
+}
+
+.admin-tab__table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-tab__table tbody tr td {
+  vertical-align: top;
+}
+
+.admin-tab__action-group {
+  align-items: center;
+}
+
+.admin-tab__reject-form {
+  min-width: 220px;
+}
+
+@media (max-width: 768px) {
+  .admin-tab__panel {
+    padding: 0.75rem;
+  }
+
+  .admin-tab__table-shell {
+    overflow-x: auto;
+  }
+
+  .admin-tab__table {
+    min-width: 760px;
+  }
+}

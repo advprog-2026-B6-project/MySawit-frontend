@@ -65,6 +65,8 @@ export default function PengirimanPage() {
   const normalizedRole = useMemo(() => currentRole?.toUpperCase(), [currentRole]);
   const isMandor = normalizedRole === "MANDOR";
   const isSupir = normalizedRole === "SUPIR";
+  const isAdmin = normalizedRole === "ADMIN";
+  const isBuruh = normalizedRole === "BURUH";
 
   return (
     <PageShell>
@@ -85,10 +87,9 @@ export default function PengirimanPage() {
         }
       />
 
-      {!isMandor && !isSupir ? (
-        <SurfaceCard className="mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm font-medium text-slate-700">
+        {!isMandor && !isSupir && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-muted-foreground">
               Pilih tampilan:
             </span>
             <Button
@@ -115,21 +116,13 @@ export default function PengirimanPage() {
               <Truck className="size-4" />
               Supir Truk
             </Button>
-            <StatusBadge tone="green">
-              {activeTab === "supir" ? "Mode Supir" : "Mode Mandor"}
-            </StatusBadge>
           </div>
-        </SurfaceCard>
-      ) : null}
+        )}
 
-      <SurfaceCard>
-        {(isMandor || (!isMandor && !isSupir && activeTab === "mandor")) && (
-          <MandorTab />
-        )}
-        {(isSupir || (!isMandor && !isSupir && activeTab === "supir")) && (
-          <SupirTab />
-        )}
-      </SurfaceCard>
+      <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+        {(isMandor || (!isMandor && !isSupir && activeTab === "mandor")) && <MandorTab />}
+        {(isSupir || (!isMandor && !isSupir && activeTab === "supir")) && <SupirTab />}
+      </div>
     </PageShell>
   );
 }
