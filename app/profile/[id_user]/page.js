@@ -50,8 +50,8 @@ export default function Page() {
         const data = await requestJson(`/users/${idUser}`);
         setUser(data);
       } catch (loadError) {
-        setError(loadError.message || "Failed to fetch user.");
-        toast.error(loadError.message || "Failed to fetch user.");
+        setError(loadError.message || "Gagal memuat profil pengguna.");
+        toast.error(loadError.message || "Gagal memuat profil pengguna.");
       } finally {
         setIsLoading(false);
       }
@@ -73,13 +73,13 @@ export default function Page() {
   return (
     <PageShell>
       <PageHero
-        eyebrow="Auth Module"
-        title="Profile detail"
-        description="A unified profile surface for viewing identity, role, and account-specific metadata without the old inline-style layout."
+        eyebrow="Profil Pengguna"
+        title="Detail akun operasional"
+        description="Lihat identitas, peran, dan informasi pendukung pegawai yang terdaftar di MySawit."
         actions={
           <Button variant="outline" onClick={() => router.back()}>
             <ArrowLeft className="size-4" />
-            Back
+            Kembali
           </Button>
         }
       />
@@ -87,15 +87,15 @@ export default function Page() {
       {isLoading ? (
         <SurfaceCard className="flex items-center justify-center gap-3 py-16 text-sm text-slate-500">
           <Loader2 className="size-4 animate-spin" />
-          Loading profile...
+          Memuat profil pengguna...
         </SurfaceCard>
       ) : error || !user ? (
         <EmptyState
-          title="User not found"
-          description={error || "The requested profile could not be loaded."}
+          title="Profil tidak ditemukan"
+          description={error || "Data pengguna yang diminta tidak dapat dimuat."}
           actions={
             <Button variant="outline" onClick={() => router.push("/admin")}>
-              Back to admin
+              Kembali ke admin
             </Button>
           }
         />
@@ -127,16 +127,16 @@ export default function Page() {
           <SurfaceCard>
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
-                Profile Details
+                Detail Profil
               </p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                Account information
+                Informasi akun
               </h2>
             </div>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <DetailItem label="Full name" value={user.fullname} />
-              <DetailItem label="Username" value={`@${user.username}`} />
-              <DetailItem label="Role">
+              <DetailItem label="Nama lengkap" value={user.fullname} />
+              <DetailItem label="Nama pengguna" value={`@${user.username}`} />
+              <DetailItem label="Peran">
                 <span
                   className={`inline-flex rounded-full border px-3 py-1 text-sm font-semibold ${roleBadgeStyles[user.role] || "border-slate-200 bg-slate-50 text-slate-700"}`}
                 >
@@ -148,8 +148,8 @@ export default function Page() {
               ) : null}
               {user.role === "MANDOR" ? (
                 <DetailItem
-                  label="Certification number"
-                  value={user.certificationNumber || "Not provided"}
+                  label="Nomor sertifikasi"
+                  value={user.certificationNumber || "Belum tersedia"}
                 />
               ) : null}
             </div>

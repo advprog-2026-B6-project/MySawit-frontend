@@ -26,7 +26,7 @@ const Page = () => {
     e.preventDefault();
 
     if (!username || !password) {
-      toast.error("Please fill in all fields");
+      toast.error("Nama pengguna dan kata sandi wajib diisi.");
       return;
     }
 
@@ -38,17 +38,17 @@ const Page = () => {
       });
 
       if (!data.token) {
-        toast.error("Invalid server response");
+        toast.error("Respons server tidak memuat token akses.");
         return;
       }
 
       localStorage.setItem("token", data.token);
 
       const role = parseRoleFromToken(data.token);
-      toast.success("Login successful");
+      toast.success("Berhasil masuk ke MySawit.");
       router.push(role === "ADMIN" ? "/admin" : "/");
     } catch (err) {
-      toast.error(err.message || "Login failed. Please try again.");
+      toast.error(err.message || "Gagal masuk. Periksa kembali kredensial Anda.");
     } finally {
       setIsSubmitting(false);
     }
@@ -62,13 +62,13 @@ const Page = () => {
     <PageShell className="flex items-center">
       <div className="mx-auto w-full max-w-2xl">
         <PageHero
-          eyebrow="Authentication"
-          title="Sign in to continue your workflow"
-          description="Use the same admin-style interface and consistent request handling across authentication and dashboard pages."
+          eyebrow="Akses Pengguna"
+          title="Masuk ke MySawit"
+          description="Gunakan akun resmi BurhanSawit untuk mengakses data operasional sesuai peran dan tanggung jawab Anda."
           actions={
             <Button variant="outline" onClick={() => router.back()}>
               <ArrowLeft className="size-4" />
-              Back
+              Kembali
             </Button>
           }
         />
@@ -77,34 +77,34 @@ const Page = () => {
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
-                Login
+                Masuk
               </p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                Welcome back
+                Selamat datang kembali
               </h2>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Nama pengguna</Label>
               <Input
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                placeholder="Masukkan nama pengguna"
                 autoComplete="username"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Kata sandi</Label>
               <div className="flex gap-3">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="Masukkan kata sandi"
                   autoComplete="current-password"
                   required
                 />
@@ -127,20 +127,20 @@ const Page = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Signing in...
+                  Memproses akses...
                 </>
               ) : (
-                "Login"
+                "Masuk"
               )}
             </Button>
 
             <p className="text-center text-sm text-slate-600">
-              Don&apos;t have an account?{" "}
+              Belum memiliki akun?{" "}
               <Link
                 href="/register"
                 className="font-semibold text-green-700 hover:text-green-800"
               >
-                Register here
+                Daftar di sini
               </Link>
             </p>
           </form>
