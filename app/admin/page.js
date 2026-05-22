@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requestJson } from "@/lib/api-client";
+import { getStoredToken, parseRoleFromToken } from "@/lib/auth";
 import {
   ArrowLeft,
   Loader2,
@@ -23,10 +24,12 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const searchTypes = ["Username", "Role"];
+const MANDOR_DELETE_BLOCKED_MESSAGE =
+  "We cant delete that users as its been assigned to a Buruh";
 
 const roleBadgeStyles = {
   ADMIN: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -71,8 +74,9 @@ export default function Page() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUserForAssign, setSelectedUserForAssign] = useState(null);
   const [selectedMandor, setSelectedMandor] = useState("");
+  const [canRenderAdmin, setCanRenderAdmin] = useState(false);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setIsUsersLoading(true);
       setPageError("");
@@ -84,7 +88,20 @@ export default function Page() {
     } finally {
       setIsUsersLoading(false);
     }
-  };
+  }, []);
+
+  const authorizeAdmin = useCallback(() => {
+    const token = getStoredToken();
+    const role = parseRoleFromToken(token);
+
+    if (role !== "ADMIN") {
+      router.replace("/");
+      return;
+    }
+
+    setCanRenderAdmin(true);
+    loadUsers();
+  }, [loadUsers, router]);
 
   const loadMandors = async () => {
     try {
@@ -103,8 +120,8 @@ export default function Page() {
   };
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    authorizeAdmin();
+  }, [authorizeAdmin]);
 
   useEffect(() => {
     if (showAssignModal) {
@@ -155,6 +172,18 @@ export default function Page() {
       return;
     }
 
+    const hasAssignedBuruh = users.some(
+      (user) =>
+        user.role === "BURUH" &&
+        user.mandorUsername === selectedUserForDelete.username,
+    );
+
+    if (selectedUserForDelete.role === "MANDOR" && hasAssignedBuruh) {
+      toast.error(MANDOR_DELETE_BLOCKED_MESSAGE);
+      closeDeleteModal();
+      return;
+    }
+
     try {
       setActionLoading(true);
       await requestJson(`/admin/delete/${selectedUserForDelete.id}`, {
@@ -201,6 +230,10 @@ export default function Page() {
       setActionLoading(false);
     }
   };
+
+  if (!canRenderAdmin) {
+    return null;
+  }
 
   return (
     <PageShell>
