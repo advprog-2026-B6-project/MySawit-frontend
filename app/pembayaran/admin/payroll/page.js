@@ -1,541 +1,752 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  AlertMessage,
+  EmptyState,
+  LoadingState,
+  PageHero,
+  PageShell,
+  SectionHeader,
+  StatusBadge,
+  SurfaceCard,
+} from "@/components/app/page-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Calendar,
+  CheckCircle,
+  CheckSquare,
+  Clock,
+  FileText,
+  History,
+  Loader2,
+  Save,
+  Scale,
+  Search,
+  User,
+  X,
+  XCircle,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
-import { User, Search, Calendar, FileText, CheckCircle, Clock, Save, History, Scale, XCircle, CheckSquare, X } from "lucide-react";
+import { useEffect, useState } from "react";
+
+const statusTones = {
+  PAID: "green",
+  ACCEPTED: "green",
+  PENDING: "amber",
+  REJECTED: "red",
+};
+
+function formatDisplayDate(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
+  return `${String(date.getUTCDate()).padStart(2, "0")} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
+}
 
 export default function AdminPayrollPage() {
-    const router = useRouter();
-    const [isAuthorized, setIsAuthorized] = useState(false); // State untuk Authorization
+  const router = useRouter();
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [activeTab, setActiveTab] = useState("history");
 
-    const [activeTab, setActiveTab] = useState("history");
+  // States for History
+  const [searchUsername, setSearchUsername] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [payrolls, setPayrolls] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
-    // States for History
-    const [searchUsername, setSearchUsername] = useState("");
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
-    const [payrolls, setPayrolls] = useState([]);
-    const [loadingHistory, setLoadingHistory] = useState(false);
-    const [historyError, setHistoryError] = useState("");
+  // States for Approve/Reject Actions
+  const [actionLoading, setActionLoading] = useState(false);
+  const [rejectModalOpen, setRejectModalOpen] = useState(false);
+  const [selectedPayrollId, setSelectedPayrollId] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
 
-    // States for Approve/Reject Actions
-    const [actionLoading, setActionLoading] = useState(false);
-    const [rejectModalOpen, setRejectModalOpen] = useState(false);
-    const [selectedPayrollId, setSelectedPayrollId] = useState(null);
-    const [rejectReason, setRejectReason] = useState("");
+  // State for viewing rejection reason
+  const [viewReasonModalOpen, setViewReasonModalOpen] = useState(false);
+  const [currentRejectReason, setCurrentRejectReason] = useState("");
 
-    // States for Create
-    const [createForm, setCreateForm] = useState({
-        username: "",
-        startDate: "",
-        endDate: "",
-        totalKg: ""
-    });
-    const [loadingCreate, setLoadingCreate] = useState(false);
-    const [createMessage, setCreateMessage] = useState({ type: "", text: "" });
+  // States for Create
+  const [createForm, setCreateForm] = useState({
+    username: "",
+    startDate: "",
+    endDate: "",
+    totalKg: "",
+  });
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [createMessage, setCreateMessage] = useState({ type: "", text: "" });
 
-    useEffect(() => {
-        const token = localStorage.getItem("token");
+  useEffect(() => {
+    const token = localStorage.getItem("token");
 
-        if (!token) {
-            router.push("/login");
-            return;
-        }
-
-        try {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-
-            if (payload.role !== "ADMIN") {
-                alert("Akses ditolak! Halaman ini khusus Admin.");
-                router.push("/");
-            } else {
-                setIsAuthorized(true);
-            }
-        } catch (error) {
-            console.error("Token tidak valid", error);
-            localStorage.removeItem("token");
-            router.push("/login");
-        }
-    }, [router]);
-
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        if (!searchUsername) {
-            setHistoryError("Username harus diisi untuk mencari histori.");
-            return;
-        }
-
-        setLoadingHistory(true);
-        setHistoryError("");
-        setPayrolls([]);
-
-        try {
-            const token = localStorage.getItem("token");
-            const queryParams = new URLSearchParams();
-            if (startDate) queryParams.append("startDate", startDate);
-            if (endDate) queryParams.append("endDate", endDate);
-
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/user/${searchUsername}?${queryParams.toString()}`, {
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setPayrolls(data);
-            } else {
-                setHistoryError("Gagal mengambil histori payroll. Pastikan username benar dan Anda memiliki akses admin.");
-            }
-        } catch (err) {
-            setHistoryError("Gagal terhubung ke server.");
-        } finally {
-            setLoadingHistory(false);
-        }
-    };
-
-    const handleApprove = async (id) => {
-        setActionLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            const approveRes = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${id}/approve`, {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
-
-            if (approveRes.ok) {
-                await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/webhook/payment`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ payrollId: id, status: "SUCCESS" })
-                });
-
-                setPayrolls(payrolls.map(p => p.id === id ? {...p, status: 'ACCEPTED'} : p));
-                alert("Payroll disetujui dan dibayar via Payment Gateway simulasi.");
-            } else {
-                alert("Gagal menyetujui payroll.");
-            }
-        } catch (err) {
-            alert("Error: " + err.message);
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleRejectSubmit = async (e) => {
-        e.preventDefault();
-        if (!rejectReason) return alert("Alasan penolakan wajib diisi");
-
-        setActionLoading(true);
-        try {
-            const token = localStorage.getItem("token");
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${selectedPayrollId}/reject`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ reason: rejectReason })
-            });
-
-            if (res.ok) {
-                setPayrolls(payrolls.map(p => p.id === selectedPayrollId ? {...p, status: 'REJECTED'} : p));
-                setRejectModalOpen(false);
-                setRejectReason("");
-            } else {
-                alert("Gagal menolak payroll.");
-            }
-        } catch (err) {
-            alert("Error: " + err.message);
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const openRejectModal = (id) => {
-        setSelectedPayrollId(id);
-        setRejectModalOpen(true);
-    };
-
-    const handleCreateSubmit = async (e) => {
-        e.preventDefault();
-        setLoadingCreate(true);
-        setCreateMessage({ type: "", text: "" });
-
-        try {
-            const token = localStorage.getItem("token");
-            const payload = {
-                username: createForm.username,
-                startDate: createForm.startDate,
-                endDate: createForm.endDate,
-                totalKg: parseFloat(createForm.totalKg)
-            };
-
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setCreateMessage({ type: "success", text: `Payroll berhasil dibuat dengan total: Rp ${data.totalAmount?.toLocaleString('id-ID')}` });
-                setCreateForm({ username: "", startDate: "", endDate: "", totalKg: "" });
-            } else {
-                setCreateMessage({ type: "error", text: "Gagal membuat payroll. Validasi input atau otoritas gagal." });
-            }
-        } catch (err) {
-            setCreateMessage({ type: "error", text: "Gagal terhubung ke server." });
-        } finally {
-            setLoadingCreate(false);
-        }
-    };
-
-    const handleCreateChange = (e) => {
-        setCreateForm({ ...createForm, [e.target.name]: e.target.value });
-    };
-
-    const getStatusStyle = (status) => {
-        switch (status) {
-            case "PAID":
-            case "ACCEPTED": return "bg-green-100 text-green-800 border-green-200";
-            case "PENDING": return "bg-yellow-100 text-yellow-800 border-yellow-200";
-            case "REJECTED": return "bg-red-100 text-red-800 border-red-200";
-            default: return "bg-gray-100 text-gray-800 border-gray-200";
-        }
-    };
-
-    if (!isAuthorized) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-                <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                <p className="mt-4 text-gray-500 font-medium">Memverifikasi otorisasi...</p>
-            </div>
-        );
+    if (!token) {
+      router.push("/login");
+      return;
     }
 
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+
+      if (payload.role !== "ADMIN") {
+        alert("Akses ditolak! Halaman ini khusus Admin.");
+        router.push("/");
+      } else {
+        setIsAuthorized(true);
+      }
+    } catch (error) {
+      console.error("Token tidak valid", error);
+      localStorage.removeItem("token");
+      router.push("/login");
+    }
+  }, [router]);
+
+  // Load Midtrans Snap script dynamically
+  useEffect(() => {
+    const snapScript = "https://app.sandbox.midtrans.com/snap/snap.js";
+    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY;
+    const script = document.createElement("script");
+    script.src = snapScript;
+    script.setAttribute("data-client-key", clientKey || "");
+    script.async = true;
+
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const handleSearch = async (event) => {
+    event.preventDefault();
+    if (!searchUsername) {
+      setHistoryError("Username harus diisi untuk mencari histori.");
+      return;
+    }
+
+    setLoadingHistory(true);
+    setHistoryError("");
+    setPayrolls([]);
+
+    try {
+      const token = localStorage.getItem("token");
+      const queryParams = new URLSearchParams();
+      if (startDate) queryParams.append("startDate", startDate);
+      if (endDate) queryParams.append("endDate", endDate);
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/user/${searchUsername}?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setPayrolls(Array.isArray(data) ? data : []);
+      } else {
+        setHistoryError(
+          "Gagal mengambil histori payroll. Pastikan username benar dan Anda memiliki akses admin.",
+        );
+      }
+    } catch {
+      setHistoryError("Gagal terhubung ke server.");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const handleApprove = async (id) => {
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const currentPayroll = payrolls.find((p) => p.id === id);
+
+      const checkoutRes = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/checkout`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orderId: id,
+            amount: currentPayroll?.totalWage,
+            customerName: currentPayroll?.username,
+            customerEmail: currentPayroll?.username + "@mysawit.com",
+          }),
+        },
+      );
+
+      if (!checkoutRes.ok) {
+        alert("Gagal meminta token pembayaran dari server.");
+        setActionLoading(false);
+        return;
+      }
+
+      const checkoutData = await checkoutRes.json();
+
+      window.snap.pay(checkoutData.token, {
+        onSuccess: async function () {
+          await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${id}/approve`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setPayrolls(
+            payrolls.map((p) =>
+              p.id === id ? { ...p, status: "ACCEPTED" } : p,
+            ),
+          );
+          alert("Pembayaran berhasil diselesaikan via Midtrans!");
+        },
+        onPending: async function () {
+          await fetch(
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${id}/approve`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setPayrolls(
+            payrolls.map((p) =>
+              p.id === id ? { ...p, status: "ACCEPTED" } : p,
+            ),
+          );
+          alert("Menunggu pembayaran...");
+        },
+        onError: function () {
+          alert("Pembayaran gagal! Status dikembalikan ke PENDING.");
+        },
+        onClose: function () {
+          alert(
+            "Anda menutup popup tanpa menyelesaikan pembayaran. Status tetap PENDING.",
+          );
+        },
+      });
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectSubmit = async (event) => {
+    event.preventDefault();
+    if (!rejectReason) return alert("Alasan penolakan wajib diisi");
+
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll/${selectedPayrollId}/reject`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ reason: rejectReason }),
+        },
+      );
+
+      if (res.ok) {
+        setPayrolls(
+          payrolls.map((payroll) =>
+            payroll.id === selectedPayrollId
+              ? { ...payroll, status: "REJECTED", rejectReason: rejectReason }
+              : payroll,
+          ),
+        );
+        setRejectModalOpen(false);
+        setRejectReason("");
+      } else {
+        alert("Gagal menolak payroll.");
+      }
+    } catch (err) {
+      alert(`Error: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const openRejectModal = (id) => {
+    setSelectedPayrollId(id);
+    setRejectModalOpen(true);
+  };
+
+  const openViewReasonModal = (reason) => {
+    setCurrentRejectReason(reason || "Tidak ada alasan spesifik diberikan.");
+    setViewReasonModalOpen(true);
+  };
+
+  const handleCreateSubmit = async (event) => {
+    event.preventDefault();
+    setLoadingCreate(true);
+    setCreateMessage({ type: "", text: "" });
+
+    try {
+      const token = localStorage.getItem("token");
+      const payload = {
+        username: createForm.username,
+        startDate: createForm.startDate,
+        endDate: createForm.endDate,
+        totalKg: parseFloat(createForm.totalKg),
+      };
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/pembayaran/admin/payroll`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        setCreateMessage({
+          type: "success",
+          text: `Payroll berhasil dibuat dengan total: Rp ${data.totalAmount?.toLocaleString(
+            "id-ID",
+          )}`,
+        });
+        setCreateForm({
+          username: "",
+          startDate: "",
+          endDate: "",
+          totalKg: "",
+        });
+      } else {
+        setCreateMessage({
+          type: "error",
+          text: "Gagal membuat payroll. Validasi input atau otoritas gagal.",
+        });
+      }
+    } catch {
+      setCreateMessage({ type: "error", text: "Gagal terhubung ke server." });
+    } finally {
+      setLoadingCreate(false);
+    }
+  };
+
+  const handleCreateChange = (event) => {
+    setCreateForm({ ...createForm, [event.target.name]: event.target.value });
+  };
+
+  if (!isAuthorized) {
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col p-6 font-sans">
-            <div className="max-w-6xl mx-auto w-full">
-                <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900 group flex items-center gap-3">
-                            <span className="p-2 bg-blue-100 rounded-lg text-blue-600 transition-transform group-hover:scale-110">
-                                <FileText className="w-7 h-7" />
-                            </span>
-                            Manajemen Payroll Admin
-                        </h1>
-                        <p className="text-gray-500 mt-2 text-sm">
-                            Pantau histori pembayaran pekerja dan buat pembayaran baru.
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex space-x-2 border-b border-gray-200 mb-8">
-                    <button
-                        onClick={() => setActiveTab("history")}
-                        className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                            activeTab === "history"
-                                ? "border-blue-600 text-blue-600"
-                                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                        }`}
-                    >
-                        <History className="w-4 h-4 mr-2" />
-                        Histori Payroll Pengguna
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("create")}
-                        className={`flex items-center px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                            activeTab === "create"
-                                ? "border-blue-600 text-blue-600"
-                                : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                        }`}
-                    >
-                        <Save className="w-4 h-4 mr-2" />
-                        Buat Payroll Baru
-                    </button>
-                </div>
-
-                {activeTab === "history" && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8 lg:sticky lg:top-6 z-10 transition-shadow hover:shadow-md duration-300">
-                            <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-4 items-end">
-                                <div className="flex-1 w-full relative group">
-                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 block">
-                                        Username
-                                    </label>
-                                    <div className="relative">
-                                        <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-blue-500 transition-colors" />
-                                        <input
-                                            type="text"
-                                            value={searchUsername}
-                                            onChange={(e) => setSearchUsername(e.target.value)}
-                                            placeholder="Masukkan username pekerja"
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-gray-50 focus:bg-white text-gray-700"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 w-full relative group">
-                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 block">
-                                        Tanggal Mulai
-                                    </label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-blue-500 transition-colors" />
-                                        <input
-                                            type="date"
-                                            value={startDate}
-                                            onChange={(e) => setStartDate(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-gray-50 focus:bg-white text-gray-700"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 w-full relative group">
-                                    <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2 block">
-                                        Tanggal Akhir
-                                    </label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 group-hover:text-blue-500 transition-colors" />
-                                        <input
-                                            type="date"
-                                            value={endDate}
-                                            onChange={(e) => setEndDate(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none bg-gray-50 focus:bg-white text-gray-700"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="w-full md:w-auto">
-                                    <button
-                                        type="submit"
-                                        disabled={loadingHistory}
-                                        className="w-full md:w-auto flex items-center justify-center px-6 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-transform active:scale-95 shadow-sm hover:shadow-md disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                    >
-                                        <Search className="w-4 h-4 mr-2" />
-                                        {loadingHistory ? "Mencari..." : "Cari Histori"}
-                                    </button>
-                                </div>
-                            </form>
-
-                            {historyError && (
-                                <p className="mt-4 text-sm text-red-600 font-medium">{historyError}</p>
-                            )}
-                        </div>
-
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
-                            {loadingHistory && (
-                                <div className="absolute inset-0 bg-white/60 backdrop-blur-sm z-20 flex items-center justify-center">
-                                    <div className="flex flex-col items-center">
-                                        <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                                        <p className="mt-3 text-sm font-medium text-gray-600">Memuat data...</p>
-                                    </div>
-                                </div>
-                            )}
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead>
-                                    <tr className="bg-gray-50">
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID</th>
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Username</th>
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Tanggal</th>
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Total Upah</th>
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-100">
-                                    {payrolls.length === 0 && !loadingHistory ? (
-                                        <tr>
-                                            <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                                                Belum ada data untuk pencarian ini.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        payrolls.map((pr) => (
-                                            <tr key={pr.id} className="hover:bg-gray-50/80 transition-colors group">
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{pr.id.toString().substring(0,8)}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{pr.username}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{pr.createdAt ? format(new Date(pr.createdAt), 'dd MMM yyyy') : '-'}</td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                                                    Rp {(pr.totalWage ?? 0).toLocaleString('id-ID', { minimumFractionDigits: 2 })}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyle(pr.status)}`}>
-                                                            {(pr.status === 'PAID' || pr.status === 'ACCEPTED') ? <CheckCircle className="w-3 h-3 mr-1" /> : (pr.status === 'REJECTED' ? <XCircle className="w-3 h-3 mr-1" /> : <Clock className="w-3 h-3 mr-1" />)}
-                                                            {pr.status}
-                                                        </span>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                                    {pr.status === 'PENDING' && (
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => handleApprove(pr.id)}
-                                                                disabled={actionLoading}
-                                                                className="flex items-center px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
-                                                            >
-                                                                <CheckSquare className="w-4 h-4 mr-1"/> Setujui
-                                                            </button>
-                                                            <button
-                                                                onClick={() => openRejectModal(pr.id)}
-                                                                disabled={actionLoading}
-                                                                className="flex items-center px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400"
-                                                            >
-                                                                <XCircle className="w-4 h-4 mr-1"/> Tolak
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Reject Modal */}
-                        {rejectModalOpen && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                                <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl animate-in zoom-in-95 duration-200">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h3 className="text-lg font-bold text-gray-900">Tolak Payroll</h3>
-                                        <button onClick={() => setRejectModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                                            <X className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <form onSubmit={handleRejectSubmit}>
-                                        <div className="mb-4">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Penolakan</label>
-                                            <textarea
-                                                value={rejectReason}
-                                                onChange={(e) => setRejectReason(e.target.value)}
-                                                className="w-full p-3 rounded-xl border border-gray-300 focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none"
-                                                rows="4"
-                                                required
-                                                placeholder="Berikan alasan spesifik..."
-                                            ></textarea>
-                                        </div>
-                                        <div className="flex justify-end gap-3">
-                                            <button type="button" onClick={() => setRejectModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-                                            <button type="submit" disabled={actionLoading} className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center">
-                                                {actionLoading ? "Memproses..." : "Konfirmasi Tolak"}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {activeTab === "create" && (
-                    <div className="max-w-2xl bg-white rounded-2xl shadow-sm border border-gray-200 p-8 animate-in fade-in duration-300">
-                        <h2 className="text-xl font-bold text-gray-900 mb-6 border-b pb-4">Formulir Pembuatan Payroll</h2>
-
-                        {createMessage.text && (
-                            <div className={`mb-6 p-4 rounded-xl border text-sm font-medium flex items-center ${
-                                createMessage.type === "success" ? "bg-green-50 text-green-800 border-green-200" : "bg-red-50 text-red-800 border-red-200"
-                            }`}>
-                                {createMessage.text}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleCreateSubmit} className="space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Username Pekerja</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                    <input
-                                        type="text"
-                                        name="username"
-                                        value={createForm.username}
-                                        onChange={handleCreateChange}
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai (Basis Hitung)</label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="date"
-                                            name="startDate"
-                                            value={createForm.startDate}
-                                            onChange={handleCreateChange}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Akhir</label>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="date"
-                                            name="endDate"
-                                            value={createForm.endDate}
-                                            onChange={handleCreateChange}
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                                            required
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Total Massa Dipanen/Diolah (Kg)</label>
-                                <div className="relative">
-                                    <Scale className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        name="totalKg"
-                                        value={createForm.totalKg}
-                                        onChange={handleCreateChange}
-                                        placeholder="Contoh: 1500.5"
-                                        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
-                                        required
-                                    />
-                                </div>
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loadingCreate}
-                                className="w-full py-4 mt-4 bg-green-600 text-white font-bold rounded-xl shadow hover:bg-green-700 active:scale-95 transition-all flex items-center justify-center disabled:opacity-70 disabled:cursor-not-allowed"
-                            >
-                                {loadingCreate ? (
-                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                                ) : (
-                                    <Save className="w-5 h-5 mr-2" />
-                                )}
-                                {loadingCreate ? "Memproses..." : "Buat & Hitung Payroll (Draft)"}
-                            </button>
-
-                            <div className="mt-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-sm text-blue-800">
-                                <h4 className="font-semibold flex items-center mb-2"><FileText className="w-4 h-4 mr-2"/> Transparansi Kalkulasi Upah</h4>
-                                <p>Setiap payroll yang dibuat otomatis berstatus <strong>PENDING (Draft)</strong>. Kalkulasi yang diterapkan oleh sistem (Strategy Pattern):</p>
-                                <ul className="list-disc ml-5 mt-2 space-y-1">
-                                    <li><strong>Total Kg</strong> dikalikan dengan <strong>Tarif per Kg</strong> (sesuai role).</li>
-                                    <li>Hasilnya dikalikan <strong>90%</strong> (0.90) sebagai upah bersih.</li>
-                                    <li>Semua perhitungan desimal menggunakan <code>RoundingMode.HALF_UP</code> untuk presisi yang akurat.</li>
-                                </ul>
-                            </div>
-                        </form>
-                    </div>
-                )}
-            </div>
-        </div>
+      <PageShell>
+        <LoadingState label="Memverifikasi otorisasi..." />
+      </PageShell>
     );
+  }
+
+  return (
+    <PageShell>
+      <PageHero
+        eyebrow="Pembayaran"
+        title="Manajemen Payroll Admin"
+        description="Pantau histori pembayaran pekerja, kelola perhitungan upah, dan proses persetujuan payroll via Midtrans."
+      />
+
+      <div className="mb-6 flex flex-wrap gap-2 border-b border-green-100 pb-3">
+        <Button
+          variant={activeTab === "history" ? "default" : "outline"}
+          onClick={() => setActiveTab("history")}
+        >
+          <History className="size-4" />
+          Histori Payroll Pengguna
+        </Button>
+        <Button
+          variant={activeTab === "create" ? "default" : "outline"}
+          onClick={() => setActiveTab("create")}
+        >
+          <Save className="size-4" />
+          Buat Payroll Baru
+        </Button>
+      </div>
+
+      {activeTab === "history" ? (
+        <div className="space-y-6">
+          <SurfaceCard>
+            <SectionHeader
+              eyebrow="Histori Payroll"
+              title="Cari histori pengguna"
+              description="Masukkan username pekerja dan opsional rentang tanggal."
+            />
+            <form
+              onSubmit={handleSearch}
+              className="grid gap-4 lg:grid-cols-[1fr_220px_220px_auto]"
+            >
+              <FieldWithIcon label="Username" icon={<User className="size-4" />}>
+                <Input
+                  value={searchUsername}
+                  onChange={(event) => setSearchUsername(event.target.value)}
+                  placeholder="Masukkan username pekerja"
+                  required
+                  className="pl-9"
+                />
+              </FieldWithIcon>
+
+              <FieldWithIcon
+                label="Tanggal Mulai"
+                icon={<Calendar className="size-4" />}
+              >
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="pl-9"
+                />
+              </FieldWithIcon>
+
+              <FieldWithIcon
+                label="Tanggal Akhir"
+                icon={<Calendar className="size-4" />}
+              >
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="pl-9"
+                />
+              </FieldWithIcon>
+
+              <Button
+                type="submit"
+                disabled={loadingHistory}
+                className="self-end"
+              >
+                {loadingHistory ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Search className="size-4" />
+                )}
+                Cari Histori
+              </Button>
+            </form>
+            {historyError ? (
+              <AlertMessage type="error" className="mt-5">
+                {historyError}
+              </AlertMessage>
+            ) : null}
+          </SurfaceCard>
+
+          <SurfaceCard>
+            <SectionHeader
+              eyebrow="Daftar Payroll"
+              title="Hasil pencarian"
+              description={`${payrolls.length} data payroll ditemukan.`}
+            />
+
+            {loadingHistory ? (
+              <div className="flex items-center justify-center gap-3 py-12 text-sm text-slate-500">
+                <Loader2 className="size-4 animate-spin" />
+                Memuat data...
+              </div>
+            ) : payrolls.length === 0 ? (
+              <EmptyState
+                title="Belum ada data untuk pencarian ini"
+                description="Masukkan nama pengguna pekerja untuk menampilkan riwayat pembayaran."
+              />
+            ) : (
+              <div className="overflow-hidden rounded-3xl border border-green-100 bg-white">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-green-100">
+                    <thead>
+                      <tr className="bg-green-50 text-left text-xs font-bold uppercase tracking-wider text-green-900">
+                        <th className="px-6 py-4">ID</th>
+                        <th className="px-6 py-4">Username</th>
+                        <th className="px-6 py-4">Tanggal</th>
+                        <th className="px-6 py-4">Total Upah</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 bg-white">
+                      {payrolls.map((payroll) => (
+                        <tr key={payroll.id} className="hover:bg-green-50/60">
+                          <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-slate-900">
+                            #{payroll.id.toString().substring(0, 8)}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-700">
+                            {payroll.username}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">
+                            {formatDisplayDate(payroll.createdAt)}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-sm font-semibold text-slate-900">
+                            Rp{" "}
+                            {(payroll.totalWage ?? 0).toLocaleString("id-ID", {
+                              minimumFractionDigits: 2,
+                            })}
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4">
+                            <StatusBadge
+                              tone={statusTones[payroll.status] || "slate"}
+                            >
+                              {payroll.status === "REJECTED" ? (
+                                <XCircle className="size-3" />
+                              ) : payroll.status === "PENDING" ? (
+                                <Clock className="size-3" />
+                              ) : (
+                                <CheckCircle className="size-3" />
+                              )}
+                              {payroll.status}
+                            </StatusBadge>
+                          </td>
+                          <td className="whitespace-nowrap px-6 py-4 text-sm">
+                            {payroll.status === "PENDING" ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleApprove(payroll.id)}
+                                  disabled={actionLoading}
+                                >
+                                  <CheckSquare className="size-4" />
+                                  Setujui & Bayar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => openRejectModal(payroll.id)}
+                                  disabled={actionLoading}
+                                >
+                                  <XCircle className="size-4" />
+                                  Tolak
+                                </Button>
+                              </div>
+                            ) : payroll.status === "REJECTED" ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openViewReasonModal(payroll.rejectReason)}
+                              >
+                                <FileText className="size-4" />
+                                Lihat Alasan
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-slate-500">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </SurfaceCard>
+        </div>
+      ) : (
+        <SurfaceCard className="max-w-3xl">
+          <SectionHeader
+            eyebrow="Pembuatan Payroll"
+            title="Formulir Pembuatan Payroll"
+            description="Buat draft payroll berdasarkan nama pengguna, periode kerja, dan total kilogram yang diproses."
+          />
+
+          {createMessage.text ? (
+            <AlertMessage
+              type={createMessage.type === "success" ? "success" : "error"}
+              className="mb-6"
+            >
+              {createMessage.text}
+            </AlertMessage>
+          ) : null}
+
+          <form onSubmit={handleCreateSubmit} className="space-y-5">
+            <FieldWithIcon label="Username Pekerja" icon={<User className="size-4" />}>
+              <Input
+                name="username"
+                value={createForm.username}
+                onChange={handleCreateChange}
+                className="pl-9"
+                required
+              />
+            </FieldWithIcon>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <FieldWithIcon
+                label="Tanggal Mulai (Basis Hitung)"
+                icon={<Calendar className="size-4" />}
+              >
+                <Input
+                  type="date"
+                  name="startDate"
+                  value={createForm.startDate}
+                  onChange={handleCreateChange}
+                  className="pl-9"
+                  required
+                />
+              </FieldWithIcon>
+              <FieldWithIcon
+                label="Tanggal Akhir"
+                icon={<Calendar className="size-4" />}
+              >
+                <Input
+                  type="date"
+                  name="endDate"
+                  value={createForm.endDate}
+                  onChange={handleCreateChange}
+                  className="pl-9"
+                  required
+                />
+              </FieldWithIcon>
+            </div>
+
+            <FieldWithIcon
+              label="Total Massa Dipanen/Diolah (Kg)"
+              icon={<Scale className="size-4" />}
+            >
+              <Input
+                type="number"
+                step="0.01"
+                name="totalKg"
+                value={createForm.totalKg}
+                onChange={handleCreateChange}
+                placeholder="Contoh: 1500.5"
+                className="pl-9"
+                required
+              />
+            </FieldWithIcon>
+
+            <Button type="submit" disabled={loadingCreate} className="w-full">
+              {loadingCreate ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Save className="size-4" />
+              )}
+              {loadingCreate ? "Memproses..." : "Buat & Hitung Payroll (Draft)"}
+            </Button>
+
+            <AlertMessage type="info">
+              <span className="font-semibold block mb-2">Transparansi Kalkulasi Upah</span>
+              Setiap payroll yang dibuat otomatis berstatus <strong>PENDING (Draft)</strong>. Kalkulasi yang diterapkan oleh sistem:
+              <ul className="list-disc ml-5 mt-2 space-y-1">
+                <li><strong>Total Kg</strong> dikalikan dengan <strong>Tarif per Kg</strong> (sesuai role).</li>
+                <li>Hasilnya dikalikan <strong>90%</strong> (0.90) sebagai upah bersih.</li>
+                <li>Semua perhitungan desimal menggunakan <code>RoundingMode.HALF_UP</code> untuk presisi yang akurat.</li>
+              </ul>
+            </AlertMessage>
+          </form>
+        </SurfaceCard>
+      )}
+
+      {/* Reject Reason Input Modal */}
+      {rejectModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-green-100 bg-white p-6 shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <h3 className="text-lg font-bold text-slate-900">Tolak Payroll</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setRejectModalOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <form onSubmit={handleRejectSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="rejectReason">Alasan Penolakan</Label>
+                <Textarea
+                  id="rejectReason"
+                  value={rejectReason}
+                  onChange={(event) => setRejectReason(event.target.value)}
+                  rows={4}
+                  required
+                  placeholder="Berikan alasan spesifik mengapa payroll ditolak..."
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setRejectModalOpen(false)}
+                >
+                  Batal
+                </Button>
+                <Button type="submit" disabled={actionLoading} variant="destructive">
+                  {actionLoading ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : null}
+                  Konfirmasi Tolak
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {/* View Reject Reason Modal */}
+      {viewReasonModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-green-100 bg-white p-6 shadow-xl animate-in zoom-in-95 duration-200">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <h3 className="text-lg font-bold text-slate-900">Alasan Penolakan</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setViewReasonModalOpen(false)}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="bg-red-50 text-red-800 p-4 rounded-xl border border-red-200 mb-6 whitespace-pre-wrap text-sm">
+              {currentRejectReason}
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setViewReasonModalOpen(false)}
+              >
+                Tutup
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </PageShell>
+  );
+}
+
+function FieldWithIcon({ label, icon, children }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="relative">
+        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+          {icon}
+        </span>
+        {children}
+      </div>
+    </div>
+  );
 }

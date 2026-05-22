@@ -1,11 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 const styles = {
-  success: "border-emerald-200/60 bg-emerald-50 text-emerald-900 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200",
-  error: "border-rose-200/60 bg-rose-50 text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200",
-  info: "border-sky-200/60 bg-sky-50 text-sky-900 dark:border-sky-500/40 dark:bg-sky-500/10 dark:text-sky-200",
+  success: "border-green-200 bg-green-50 text-green-800",
+  error: "border-red-200 bg-red-50 text-red-700",
+  info: "border-sky-200 bg-sky-50 text-sky-800",
 };
 
 export default function Alert({ message, type = "success", onClose }) {
@@ -13,13 +14,13 @@ export default function Alert({ message, type = "success", onClose }) {
 
   return (
     <div
-      className={`mb-4 flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
+      className={`mb-4 flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-sm ${
         styles[type] ?? styles.success
       }`}
       data-testid="alert"
     >
       <p className="leading-relaxed">{message}</p>
-      {onClose && (
+      {onClose ? (
         <Button
           type="button"
           size="icon-xs"
@@ -28,9 +29,9 @@ export default function Alert({ message, type = "success", onClose }) {
           className="h-6 w-6 rounded-full"
           aria-label="Tutup"
         >
-          ✕
+          <X className="size-3" />
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -1,9 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  PageHero,
+  PageShell,
+  SectionHeader,
+  StatusBadge,
+  SurfaceCard,
+} from "@/components/app/page-shell";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import Alert from "../../components/Alert";
 import TablePengirimanSupirReadonly from "../../components/TablePengirimanSupirReadonly";
 import { fetchMandorAssignmentsBySupirId, fetchSupirById } from "../../lib/api";
@@ -65,23 +73,26 @@ export default function SupirProfilePage() {
   }, [id]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Profil Supir Truk</p>
-            <h1 className="text-2xl font-semibold">{supir?.nama ?? "Detail Supir"}</h1>
-          </div>
-          <Button asChild variant="secondary">
-            <Link href="/pengiriman">Kembali ke Pengiriman</Link>
+    <PageShell>
+      <PageHero
+        eyebrow="Distribusi Komoditas"
+        title={supir?.nama ?? "Detail Supir"}
+        description="Profil supir truk dan daftar pengiriman yang ditugaskan."
+        actions={
+          <Button asChild variant="outline">
+            <Link href="/pengiriman">
+              <ArrowLeft className="size-4" />
+              Kembali ke Pengiriman
+            </Link>
           </Button>
-        </div>
+        }
+      />
 
-        <Alert
-          message={alert.message}
-          type={alert.type}
-          onClose={() => setAlert({ message: "", type: "success" })}
-        />
+      <Alert
+        message={alert.message}
+        type={alert.type}
+        onClose={() => setAlert({ message: "", type: "success" })}
+      />
 
         <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
           <h2 className="text-lg font-semibold">Informasi Supir</h2>
@@ -118,16 +129,45 @@ export default function SupirProfilePage() {
             <div>
               <h2 className="text-lg font-semibold">Pengiriman Supir</h2>
               <p className="text-sm text-muted-foreground">
-                Daftar assignment pengiriman untuk supir ini.
+                Daftar pengiriman yang ditugaskan kepada supir ini.
               </p>
             </div>
-            {loading && <span className="text-xs text-muted-foreground">Memuat...</span>}
           </div>
-          <div className="mt-4">
-            <TablePengirimanSupirReadonly data={pengiriman} loading={loading} />
-          </div>
-        </div>
+        </SurfaceCard>
+
+        <SurfaceCard>
+          <SectionHeader
+            eyebrow="Pengiriman"
+            title="Pengiriman Supir"
+            description="Daftar muatan yang menjadi tanggung jawab supir dalam proses distribusi."
+          />
+          {loading ? (
+            <div className="py-6 text-sm text-slate-500">Memuat...</div>
+          ) : (
+            <TablePengirimanSupirReadonly
+              data={pengiriman}
+              loading={loading}
+            />
+          )}
+        </SurfaceCard>
       </div>
+    </PageShell>
+  );
+}
+
+function DetailItem({ label, value, mono }) {
+  return (
+    <div className="rounded-2xl border border-green-100 bg-green-50/50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+        {label}
+      </p>
+      <p
+        className={`mt-3 text-sm font-semibold text-slate-900 ${
+          mono ? "font-mono" : ""
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }

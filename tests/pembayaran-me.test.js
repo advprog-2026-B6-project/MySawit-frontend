@@ -103,7 +103,9 @@ describe("WorkerPayrollPage (Me)", () => {
         const startDateInput = document.querySelector('input[name="startDate"]');
         const endDateInput = document.querySelector('input[name="endDate"]');
         const statusSelect = document.querySelector('select[name="status"]');
-        const filterButton = screen.getByRole("button", { name: /Filter Data/i });
+
+
+        const filterButton = screen.getByRole("button", { name: /Terapkan Filter/i });
 
         fireEvent.change(startDateInput, { target: { value: "2023-10-01" } });
         fireEvent.change(endDateInput, { target: { value: "2023-10-31" } });

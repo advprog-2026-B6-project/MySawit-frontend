@@ -1,58 +1,66 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { PageHero, PageShell, StatusBadge, SurfaceCard } from "@/components/app/page-shell";
+import { Button } from "@/components/ui/button";
+import { Truck, UserRound } from "lucide-react";
+import { useMemo, useState } from "react";
 import MandorTab from "./components/MandorTab";
 import SupirTab from "./components/SupirTab";
-import AdminTab from "./components/AdminTab";
-import { Button } from "@/components/ui/button";
+
+function getInitialUser() {
+  if (typeof window === "undefined") {
+    return { name: "Pengguna", role: "", tab: "mandor" };
+  }
+
+  const storedName =
+    localStorage.getItem("userName") || localStorage.getItem("username");
+  const storedRole = localStorage.getItem("userRole");
+
+  if (storedRole) {
+    const normalized = storedRole.toUpperCase();
+    return {
+      name: storedName || "Pengguna",
+      role: normalized,
+      tab: normalized === "SUPIR" ? "supir" : "mandor",
+    };
+  }
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    return { name: storedName || "Pengguna", role: "", tab: "mandor" };
+  }
+
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) {
+      return { name: storedName || "Pengguna", role: "", tab: "mandor" };
+    }
+    const parsed = JSON.parse(
+      atob(payload.replace(/-/g, "+").replace(/_/g, "/")),
+    );
+    const tokenName =
+      parsed.fullname ||
+      parsed.fullName ||
+      parsed.name ||
+      parsed.username ||
+      parsed.sub;
+    const tokenRole = parsed.role || parsed.roles?.[0] || parsed.authority;
+    const normalized = tokenRole ? String(tokenRole).toUpperCase() : "";
+    return {
+      name: storedName || tokenName || "Pengguna",
+      role: normalized,
+      tab: normalized === "SUPIR" ? "supir" : "mandor",
+    };
+  } catch {
+    return { name: storedName || "Pengguna", role: "", tab: "mandor" };
+  }
+}
 
 export default function PengirimanPage() {
-  const [activeTab, setActiveTab] = useState("mandor");
-  const [currentName, setCurrentName] = useState("Pengguna");
-  const [currentRole, setCurrentRole] = useState("");
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const [, payload] = token.split(".");
-        if (payload) {
-          const parsed = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
-          const tokenName =
-            parsed.fullname || parsed.fullName || parsed.name || parsed.username || parsed.sub;
-          const tokenRole = parsed.role || parsed.roles?.[0] || parsed.authority;
-          if (tokenName) {
-            setCurrentName(tokenName);
-            localStorage.setItem("userName", tokenName);
-            localStorage.setItem("username", parsed.username || parsed.sub || tokenName);
-          }
-          if (tokenRole) {
-            const normalized = String(tokenRole).toUpperCase();
-            setCurrentRole(normalized);
-            if (normalized === "SUPIR") setActiveTab("supir");
-            else if (normalized === "ADMIN") setActiveTab("admin");
-            else setActiveTab("mandor");
-            localStorage.setItem("userRole", normalized);
-          }
-          return;
-        }
-      } catch {
-        // fallback to localStorage below
-      }
-    }
-
-    const storedName = localStorage.getItem("userName") || localStorage.getItem("username");
-    const storedRole = localStorage.getItem("userRole");
-    if (storedName) setCurrentName(storedName);
-    if (storedRole) {
-      setCurrentRole(storedRole.toUpperCase());
-      if (storedRole.toUpperCase() === "SUPIR") setActiveTab("supir");
-      else if (storedRole.toUpperCase() === "ADMIN") setActiveTab("admin");
-      else setActiveTab("mandor");
-    }
-
-    // token-first flow handled above
-  }, []);
+  const initialUser = useMemo(() => getInitialUser(), []);
+  const [activeTab, setActiveTab] = useState(initialUser.tab);
+  const [currentName] = useState(initialUser.name);
+  const [currentRole, setCurrentRole] = useState(initialUser.role);
 
   const normalizedRole = useMemo(() => currentRole?.toUpperCase(), [currentRole]);
   const isMandor = normalizedRole === "MANDOR";
@@ -61,34 +69,31 @@ export default function PengirimanPage() {
   const isBuruh = normalizedRole === "BURUH";
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-6 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">MySawit</p>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Sistem Pengiriman
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Kelola supir, muatan, dan status pengiriman secara real-time.
+    <PageShell>
+      <PageHero
+        eyebrow="Distribusi Komoditas"
+        title="Manajemen Pengiriman Hasil Panen Sawit"
+        description="Pantau penugasan supir, muatan komoditas, dan status perjalanan menuju pabrik pengolahan."
+        actions={
+          <div className="rounded-2xl border border-green-100 bg-white/80 px-4 py-3 text-sm shadow-sm">
+            <div className="flex items-center gap-2 font-semibold text-slate-900">
+              <UserRound className="size-4 text-green-700" />
+              {currentName}
+            </div>
+            <p className="mt-1 text-xs text-slate-600">
+              Peran: {normalizedRole || "Belum dipilih"}
             </p>
           </div>
-          <div className="rounded-lg border bg-card px-4 py-3 text-card-foreground shadow-sm">
-            <p className="text-xs uppercase text-muted-foreground">User aktif</p>
-            <p className="text-sm font-semibold">{currentName}</p>
-            <p className="text-xs text-muted-foreground">
-              Role: {normalizedRole || "Belum dipilih"}
-            </p>
-          </div>
-        </div>
+        }
+      />
 
-        {!isMandor && !isSupir && !isAdmin && !isBuruh && (
+        {!isMandor && !isSupir && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-muted-foreground">
               Pilih tampilan:
             </span>
             <Button
-              variant={activeTab === "mandor" ? "default" : "secondary"}
+              variant={activeTab === "mandor" ? "default" : "outline"}
               onClick={() => {
                 setActiveTab("mandor");
                 setCurrentRole("MANDOR");
@@ -96,10 +101,11 @@ export default function PengirimanPage() {
               }}
               data-testid="tab-mandor"
             >
+              <UserRound className="size-4" />
               Mandor
             </Button>
             <Button
-              variant={activeTab === "supir" ? "default" : "secondary"}
+              variant={activeTab === "supir" ? "default" : "outline"}
               onClick={() => {
                 setActiveTab("supir");
                 setCurrentRole("SUPIR");
@@ -107,29 +113,15 @@ export default function PengirimanPage() {
               }}
               data-testid="tab-supir"
             >
+              <Truck className="size-4" />
               Supir Truk
-            </Button>
-            <Button
-              variant={activeTab === "admin" ? "default" : "secondary"}
-              onClick={() => {
-                setActiveTab("admin");
-                setCurrentRole("ADMIN");
-                localStorage.setItem("userRole", "ADMIN");
-              }}
-              data-testid="tab-admin"
-            >
-              Admin
             </Button>
           </div>
         )}
 
         <div className="rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
-          {isBuruh && (
-            <p className="text-sm text-muted-foreground">Tidak ada data pengiriman untuk role BURUH.</p>
-          )}
-          {(isMandor || (!isMandor && !isSupir && !isAdmin && !isBuruh && activeTab === "mandor")) && <MandorTab />}
-          {(isSupir || (!isMandor && !isSupir && !isAdmin && !isBuruh && activeTab === "supir")) && <SupirTab />}
-          {(isAdmin || (!isMandor && !isSupir && !isAdmin && !isBuruh && activeTab === "admin")) && <AdminTab />}
+          {(isMandor || (!isMandor && !isSupir && activeTab === "mandor")) && <MandorTab />}
+          {(isSupir || (!isMandor && !isSupir && activeTab === "supir")) && <SupirTab />}
         </div>
       </div>
     </div>
