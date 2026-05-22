@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requestJson } from "@/lib/api-client";
+import { getStoredToken, parseRoleFromToken } from "@/lib/auth";
 import {
   ArrowLeft,
   Loader2,
@@ -23,10 +24,12 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 const searchTypes = ["username", "Peran"];
+const MANDOR_DELETE_BLOCKED_MESSAGE =
+  "We cant delete that users as its been assigned to a Buruh";
 
 const roleBadgeStyles = {
   ADMIN: "border-emerald-200 bg-emerald-50 text-emerald-800",
@@ -71,8 +74,9 @@ export default function Page() {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedUserForAssign, setSelectedUserForAssign] = useState(null);
   const [selectedMandor, setSelectedMandor] = useState("");
+  const [canRenderAdmin, setCanRenderAdmin] = useState(false);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       setIsUsersLoading(true);
       setPageError("");
@@ -84,7 +88,20 @@ export default function Page() {
     } finally {
       setIsUsersLoading(false);
     }
-  };
+  }, []);
+
+  const authorizeAdmin = useCallback(() => {
+    const token = getStoredToken();
+    const role = parseRoleFromToken(token);
+
+    if (role !== "ADMIN") {
+      router.replace("/");
+      return;
+    }
+
+    setCanRenderAdmin(true);
+    loadUsers();
+  }, [loadUsers, router]);
 
   const loadMandors = async () => {
     try {
@@ -103,8 +120,8 @@ export default function Page() {
   };
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    authorizeAdmin();
+  }, [authorizeAdmin]);
 
   useEffect(() => {
     if (showAssignModal) {
@@ -155,6 +172,18 @@ export default function Page() {
       return;
     }
 
+    const hasAssignedBuruh = users.some(
+      (user) =>
+        user.role === "BURUH" &&
+        user.mandorUsername === selectedUserForDelete.username,
+    );
+
+    if (selectedUserForDelete.role === "MANDOR" && hasAssignedBuruh) {
+      toast.error(MANDOR_DELETE_BLOCKED_MESSAGE);
+      closeDeleteModal();
+      return;
+    }
+
     try {
       setActionLoading(true);
       await requestJson(`/admin/delete/${selectedUserForDelete.id}`, {
@@ -201,6 +230,10 @@ export default function Page() {
       setActionLoading(false);
     }
   };
+
+  if (!canRenderAdmin) {
+    return null;
+  }
 
   return (
     <PageShell>
@@ -303,37 +336,38 @@ export default function Page() {
                 </div>
               ) : (
                 filteredUsers.map((user, index) => (
-                  <button
+                  <div
                     key={user.id}
-                    type="button"
-                    className="grid w-full grid-cols-12 gap-4 border-t border-slate-100 px-5 py-4 text-left transition hover:bg-green-50/60"
-                    onClick={() => router.push(`/profile/${user.id}`)}
+                    className="grid w-full grid-cols-12 gap-4 border-t border-slate-100 px-5 py-4 transition hover:bg-green-50/60"
                   >
-                    <div className="col-span-1 text-sm text-slate-600">
-                      {index + 1}
-                    </div>
-                    <div className="col-span-4 truncate font-medium text-green-800">
-                      {user.username}
-                    </div>
-                    <div className="col-span-2 text-sm">
-                      <span
-                        className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${roleBadgeStyles[user.role] || "border-slate-200 bg-slate-50 text-slate-700"}`}
-                      >
-                        {user.role}
-                      </span>
-                    </div>
-                    <div className="col-span-2 text-sm text-slate-600">
-                      {user.mandorUsername || "-"}
-                    </div>
+                    <button
+                      type="button"
+                      className="col-span-9 grid grid-cols-9 gap-4 text-left"
+                      onClick={() => router.push(`/profile/${user.id}`)}
+                    >
+                      <div className="col-span-1 text-sm text-slate-600">
+                        {index + 1}
+                      </div>
+                      <div className="col-span-4 truncate font-medium text-green-800">
+                        {user.username}
+                      </div>
+                      <div className="col-span-2 text-sm">
+                        <span
+                          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${roleBadgeStyles[user.role] || "border-slate-200 bg-slate-50 text-slate-700"}`}
+                        >
+                          {user.role}
+                        </span>
+                      </div>
+                      <div className="col-span-2 text-sm text-slate-600">
+                        {user.mandorUsername || "-"}
+                      </div>
+                    </button>
                     <div className="col-span-3 flex gap-2">
                       <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteClick(user);
-                        }}
+                        onClick={() => handleDeleteClick(user)}
                       >
                         <Trash2 className="size-4" />
                         Hapus
@@ -342,17 +376,14 @@ export default function Page() {
                         <Button
                           type="button"
                           size="sm"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleAssignClick(user);
-                          }}
+                          onClick={() => handleAssignClick(user)}
                         >
                           <UserRoundCog className="size-4" />
                           {user.mandorUsername ? "Alihkan" : "Tetapkan"}
                         </Button>
                       ) : null}
                     </div>
-                  </button>
+                  </div>
                 ))
               )}
             </div>

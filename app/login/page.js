@@ -3,7 +3,7 @@ import { PageHero, PageShell, SurfaceCard } from "@/components/app/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { clearStoredToken, parseRoleFromToken } from "@/lib/auth";
+import { getStoredToken } from "@/lib/auth";
 import { requestJson } from "@/lib/api-client";
 import { ArrowLeft, Eye, EyeClosed, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -16,6 +16,7 @@ const Page = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordVisibility = () => {
@@ -44,9 +45,8 @@ const Page = () => {
 
       localStorage.setItem("token", data.token);
 
-      const role = parseRoleFromToken(data.token);
       toast.success("Berhasil masuk ke MySawit.");
-      router.push(role === "ADMIN" ? "/admin" : "/");
+      router.push("/");
     } catch (err) {
       toast.error(err.message || "Gagal masuk. Periksa kembali kredensial Anda.");
     } finally {
@@ -55,8 +55,13 @@ const Page = () => {
   };
 
   useEffect(() => {
-    clearStoredToken();
-  }, []);
+    if (getStoredToken()) {
+      router.replace("/");
+      return;
+    }
+
+    setIsCheckingSession(false);
+  }, [router]);
 
   return (
     <PageShell className="flex items-center">
@@ -123,7 +128,11 @@ const Page = () => {
               </div>
             </div>
 
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={isSubmitting || isCheckingSession}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />

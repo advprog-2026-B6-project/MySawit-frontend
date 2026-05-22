@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 const defaultHighlights = [
@@ -22,11 +22,33 @@ const defaultHighlights = [
   "Perhitungan upah dan pembayaran mengikuti catatan operasional yang tervalidasi.",
 ];
 
+const authChangeEvent = "mysawit-auth-change";
+
+function getAuthRoleSnapshot() {
+  return parseRoleFromToken(getStoredToken());
+}
+
+function getServerAuthRoleSnapshot() {
+  return null;
+}
+
+function subscribeToAuthChanges(callback) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(authChangeEvent, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(authChangeEvent, callback);
+  };
+}
+
 export default function Home() {
-  const [authRole, setAuthRole] = useState(() =>
-    parseRoleFromToken(getStoredToken()),
+  const authRole = useSyncExternalStore(
+    subscribeToAuthChanges,
+    getAuthRoleSnapshot,
+    getServerAuthRoleSnapshot,
   );
-  const [backendMessage, setBackendMessage] = useState("Memeriksa layanan...");
+  const [, setBackendMessage] = useState("Memeriksa layanan...");
 
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/hello`)
@@ -43,7 +65,7 @@ export default function Home() {
 
   const handleLogout = () => {
     clearStoredToken();
-    setAuthRole(null);
+    window.dispatchEvent(new Event(authChangeEvent));
     toast.success("Sesi pengguna telah diakhiri.");
   };
 
