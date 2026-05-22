@@ -103,7 +103,7 @@ describe("WorkerPayrollPage (Me)", () => {
         const startDateInput = document.querySelector('input[name="startDate"]');
         const endDateInput = document.querySelector('input[name="endDate"]');
         const statusSelect = document.querySelector('select[name="status"]');
-        
+
 
         const filterButton = screen.getByRole("button", { name: /Terapkan Filter/i });
 

@@ -3,10 +3,11 @@ import { PageHero, PageShell, SurfaceCard } from "@/components/app/page-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getStoredToken } from "@/lib/auth";
 import { requestJson } from "@/lib/api-client";
 import { ArrowLeft, Eye, EyeClosed, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Combobox,
@@ -25,6 +26,7 @@ const Page = () => {
   const [certificationNumber, setCertificationNumber] = useState("");
   const [job, setJob] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
   const togglePasswordVisibility = () => {
@@ -68,6 +70,15 @@ const Page = () => {
   };
 
   const accountTypes = ["Buruh", "Mandor", "Supir"];
+
+  useEffect(() => {
+    if (getStoredToken()) {
+      router.replace("/");
+      return;
+    }
+
+    setIsCheckingSession(false);
+  }, [router]);
 
   return (
     <PageShell className="flex items-center">
@@ -176,7 +187,11 @@ const Page = () => {
               </div>
             </div>
 
-            <Button className="w-full" type="submit" disabled={isSubmitting}>
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={isSubmitting || isCheckingSession}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
