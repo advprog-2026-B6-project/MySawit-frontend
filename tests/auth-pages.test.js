@@ -43,7 +43,7 @@ describe("auth pages", () => {
 
     await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/"));
     expect(localStorage.getItem("token")).toBe("existing-token");
-    expect(screen.getByRole("button", { name: "Login" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Masuk" })).toBeDisabled();
   });
 
   test("register redirects an existing session home without clearing the token", async () => {
@@ -53,7 +53,7 @@ describe("auth pages", () => {
 
     await waitFor(() => expect(mockRouter.replace).toHaveBeenCalledWith("/"));
     expect(localStorage.getItem("token")).toBe("existing-token");
-    expect(screen.getByRole("button", { name: "Register" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Daftarkan Akun" })).toBeDisabled();
   });
 
   test("successful admin login redirects to home", async () => {
@@ -63,12 +63,12 @@ describe("auth pages", () => {
     render(<LoginPage />);
 
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Login" })).toBeEnabled(),
+      expect(screen.getByRole("button", { name: "Masuk" })).toBeEnabled(),
     );
 
-    await user.type(screen.getByLabelText("Username"), "admin");
-    await user.type(screen.getByLabelText("Password"), "password");
-    await user.click(screen.getByRole("button", { name: "Login" }));
+    await user.type(screen.getByLabelText("Nama pengguna"), "admin");
+    await user.type(screen.getByLabelText("Kata sandi"), "password");
+    await user.click(screen.getByRole("button", { name: "Masuk" }));
 
     await waitFor(() => expect(mockRouter.push).toHaveBeenCalledWith("/"));
     expect(mockRouter.push).not.toHaveBeenCalledWith("/admin");

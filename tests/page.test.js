@@ -19,45 +19,18 @@ describe("Home component", () => {
     return `header.${payload}.signature`;
   };
 
-  test("fetches message and displays it", async () => {
+  test("calls backend API on mount", async () => {
     global.fetch = jest.fn().mockResolvedValue({
       json: jest.fn().mockResolvedValue({ message: "hello" }),
     });
 
     render(<Home />);
 
-    await waitFor(() =>
-      expect(screen.getByText(/fetched message :/)).toHaveTextContent(
-        "fetched message : hello",
-      ),
-    );
-  });
-
-  test("shows fallback when fetch returns no text", async () => {
-    global.fetch = jest.fn().mockResolvedValue({
-      json: jest.fn().mockResolvedValue({}),
+    // Memastikan fetch dipanggil tanpa harus mencari teks di DOM
+    // karena di versi page.js terbaru, backendMessage tidak di-render ke UI
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith("http://example.com/auth/hello");
     });
-
-    render(<Home />);
-
-    await waitFor(() =>
-      expect(screen.getByText(/fetched message :/)).toHaveTextContent(
-        "fetched message : If you see this, something failed!!!",
-      ),
-    );
-  });
-
-  test("keeps loading text when fetch never resolves", async () => {
-    // return pending promise so it stays on Loading...
-    global.fetch = jest.fn().mockImplementation(() => new Promise(() => {}));
-
-    render(<Home />);
-
-    await waitFor(() =>
-      expect(screen.getByText(/fetched message :/)).toHaveTextContent(
-        "fetched message : Loading...",
-      ),
-    );
   });
 
   test("shows only login and register before login", async () => {
@@ -67,12 +40,12 @@ describe("Home component", () => {
 
     render(<Home />);
 
-    await waitFor(() => expect(screen.getByText("Login")).toBeInTheDocument());
-    expect(screen.getByText("Register")).toBeInTheDocument();
-    expect(screen.queryByText("Buruh Form Hasil")).not.toBeInTheDocument();
-    expect(screen.queryByText("Buruh Riwayat")).not.toBeInTheDocument();
-    expect(screen.queryByText("Mandor Riwayat")).not.toBeInTheDocument();
-    expect(screen.queryByText("Logout")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Masuk")).toBeInTheDocument());
+    expect(screen.getByText("Daftar Akun")).toBeInTheDocument();
+    expect(screen.queryByText("Input Hasil Panen")).not.toBeInTheDocument();
+    expect(screen.queryByText("Riwayat Panen Saya")).not.toBeInTheDocument();
+    expect(screen.queryByText("Verifikasi Panen")).not.toBeInTheDocument();
+    expect(screen.queryByText("Keluar")).not.toBeInTheDocument();
   });
 
   test("shows buruh buttons after buruh login", async () => {
@@ -83,12 +56,12 @@ describe("Home component", () => {
 
     render(<Home />);
 
-    await waitFor(() => expect(screen.getByText("Buruh Form Hasil")).toBeInTheDocument());
-    expect(screen.getByText("Buruh Riwayat")).toBeInTheDocument();
-    expect(screen.getByText("Logout")).toBeInTheDocument();
-    expect(screen.queryByText("Login")).not.toBeInTheDocument();
-    expect(screen.queryByText("Register")).not.toBeInTheDocument();
-    expect(screen.queryByText("Mandor Riwayat")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Input Hasil Panen")).toBeInTheDocument());
+    expect(screen.getByText("Riwayat Panen Saya")).toBeInTheDocument();
+    expect(screen.getByText("Keluar")).toBeInTheDocument();
+    expect(screen.queryByText("Masuk")).not.toBeInTheDocument();
+    expect(screen.queryByText("Daftar Akun")).not.toBeInTheDocument();
+    expect(screen.queryByText("Verifikasi Panen")).not.toBeInTheDocument();
   });
 
   test("shows mandor buttons after mandor login", async () => {
@@ -99,11 +72,11 @@ describe("Home component", () => {
 
     render(<Home />);
 
-    await waitFor(() => expect(screen.getByText("Mandor Riwayat")).toBeInTheDocument());
-    expect(screen.getByText("Logout")).toBeInTheDocument();
-    expect(screen.queryByText("Login")).not.toBeInTheDocument();
-    expect(screen.queryByText("Register")).not.toBeInTheDocument();
-    expect(screen.queryByText("Buruh Form Hasil")).not.toBeInTheDocument();
-    expect(screen.queryByText("Buruh Riwayat")).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Verifikasi Panen")).toBeInTheDocument());
+    expect(screen.getByText("Keluar")).toBeInTheDocument();
+    expect(screen.queryByText("Masuk")).not.toBeInTheDocument();
+    expect(screen.queryByText("Daftar Akun")).not.toBeInTheDocument();
+    expect(screen.queryByText("Input Hasil Panen")).not.toBeInTheDocument();
+    expect(screen.queryByText("Riwayat Panen Saya")).not.toBeInTheDocument();
   });
 });

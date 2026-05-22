@@ -76,8 +76,8 @@ describe("admin page", () => {
     await waitFor(() =>
       expect(screen.getAllByText("mandor-1").length).toBeGreaterThan(0),
     );
-    await user.click(screen.getAllByRole("button", { name: /delete/i })[0]);
-    await user.click(screen.getByRole("button", { name: /delete user/i }));
+    await user.click(screen.getAllByRole("button", { name: /hapus/i })[0]);
+    await user.click(screen.getByRole("button", { name: /hapus akun/i }));
 
     expect(toast.error).toHaveBeenCalledWith(
       "We cant delete that users as its been assigned to a Buruh",

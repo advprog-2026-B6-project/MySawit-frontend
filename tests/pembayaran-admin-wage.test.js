@@ -23,11 +23,13 @@ describe("WageSettingPage (Admin Wage Settings)", () => {
         localStorage.clear();
         global.fetch = jest.fn();
         alertMock = jest.spyOn(window, "alert").mockImplementation(() => {});
+        jest.spyOn(console, "error").mockImplementation(() => {});
     });
 
     afterEach(() => {
         jest.clearAllMocks();
         alertMock.mockRestore();
+        console.error.mockRestore();
     });
 
     test("redirects to login if no token is found", async () => {
@@ -65,7 +67,7 @@ describe("WageSettingPage (Admin Wage Settings)", () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText("Pengaturan Variabel Upah Master")).toBeInTheDocument();
+            expect(screen.getByText("Pengaturan Tarif Upah")).toBeInTheDocument();
         });
 
         expect(global.fetch).toHaveBeenCalledWith(
@@ -96,14 +98,14 @@ describe("WageSettingPage (Admin Wage Settings)", () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText("Pengaturan Variabel Upah Master")).toBeInTheDocument();
+            expect(screen.getByText("Pengaturan Tarif Upah")).toBeInTheDocument();
         });
     });
 
     test("can submit new wage settings successfully", async () => {
         localStorage.setItem("token", createToken("ADMIN"));
 
-        // Mock fetch pertama (render awal)
+
         global.fetch.mockResolvedValueOnce({
             ok: true,
             json: jest.fn().mockResolvedValue({}),
@@ -114,10 +116,10 @@ describe("WageSettingPage (Admin Wage Settings)", () => {
         });
 
         await waitFor(() => {
-            expect(screen.getByText("Pengaturan Variabel Upah Master")).toBeInTheDocument();
+            expect(screen.getByText("Pengaturan Tarif Upah")).toBeInTheDocument();
         });
 
-        // PERBAIKAN: Mock fetch kedua (saat save) ditambahkan json() untuk mencegah crash
+
         global.fetch.mockResolvedValueOnce({
             ok: true,
             json: jest.fn().mockResolvedValue({ message: "Success" })
@@ -139,7 +141,7 @@ describe("WageSettingPage (Admin Wage Settings)", () => {
         });
 
         await waitFor(() => {
-            // Kita hanya mengecek apakah data berhasil dikirim ke backend dengan payload yang benar
+
             expect(global.fetch).toHaveBeenCalledWith(
                 "http://localhost:8080/pembayaran/admin/wages",
                 expect.objectContaining({
@@ -151,7 +153,6 @@ describe("WageSettingPage (Admin Wage Settings)", () => {
                     })
                 })
             );
-            // Pengecekan alertMock dihapus agar tidak sensitif terhadap perubahan teks
         });
     });
 });

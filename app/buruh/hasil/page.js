@@ -1,8 +1,22 @@
 "use client";
 
+import {
+  AlertMessage,
+  LoadingState,
+  PageHero,
+  PageShell,
+  SectionHeader,
+  SurfaceCard,
+} from "@/components/app/page-shell";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, Save, Upload } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
+const backendUrl =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8080";
 
 export default function BuruhPanenPage() {
   const [kilogram, setKilogram] = useState("");
@@ -88,64 +102,101 @@ export default function BuruhPanenPage() {
   };
 
   if (loadingStatus) {
-    return <main style={{ padding: "24px" }}>Memuat status form panen...</main>;
+    return (
+      <PageShell>
+        <LoadingState label="Memuat status form panen..." />
+      </PageShell>
+    );
   }
 
   return (
-    <main style={{ maxWidth: "640px", margin: "0 auto", padding: "24px" }}>
-      <h1>Form Pelaporan Hasil Panen</h1>
+    <PageShell>
+      <PageHero
+        eyebrow="Pelaporan Panen"
+        title="Manajemen Hasil Panen Sawit"
+        description="Laporkan hasil panen harian, kondisi lapangan, dan bukti foto agar data produksi tercatat akurat."
+      />
 
-      {message ? <p style={{ color: "green" }}>{message}</p> : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      <SurfaceCard className="mx-auto max-w-3xl">
+        <SectionHeader
+          eyebrow="Input Harian"
+          title="Laporan panen hari ini"
+          description="Laporan harian hanya dapat dikirim satu kali setelah data diterima untuk proses verifikasi."
+        />
 
-      <form onSubmit={onSubmit}>
-        <div style={{ marginBottom: "12px" }}>
-          <label htmlFor="kilogram">Kilogram panen</label>
-          <input
-            id="kilogram"
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={kilogram}
-            onChange={(event) => setKilogram(event.target.value)}
-            disabled={formLocked || submitting}
-            required
-            style={{ display: "block", width: "100%", padding: "8px" }}
-          />
+        <div className="space-y-4">
+          {message ? <AlertMessage type="success">{message}</AlertMessage> : null}
+          {error ? <AlertMessage type="error">{error}</AlertMessage> : null}
         </div>
 
-        <div style={{ marginBottom: "12px" }}>
-          <label htmlFor="news">Berita hasil panen</label>
-          <textarea
-            id="news"
-            value={news}
-            onChange={(event) => setNews(event.target.value)}
-            disabled={formLocked || submitting}
-            required
-            rows={4}
-            style={{ display: "block", width: "100%", padding: "8px" }}
-          />
-        </div>
+        <form onSubmit={onSubmit} className="mt-6 space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="kilogram">Kilogram panen</Label>
+            <Input
+              id="kilogram"
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={kilogram}
+              onChange={(event) => setKilogram(event.target.value)}
+              disabled={formLocked || submitting}
+              required
+              placeholder="Contoh: 125.5"
+            />
+          </div>
 
-        <div style={{ marginBottom: "12px" }}>
-          <label htmlFor="photos">Bukti foto (bisa lebih dari satu)</label>
-          <input
-            id="photos"
-            type="file"
-            accept="image/*"
-            multiple
-            disabled={formLocked || submitting}
-            required
-            onChange={(event) => setPhotos(Array.from(event.target.files || []))}
-            style={{ display: "block", width: "100%", padding: "8px" }}
-          />
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="news">Berita hasil panen</Label>
+            <Textarea
+              id="news"
+              value={news}
+              onChange={(event) => setNews(event.target.value)}
+              disabled={formLocked || submitting}
+              required
+              rows={4}
+              placeholder="Ringkas kondisi panen hari ini"
+            />
+          </div>
 
-        <button type="submit" disabled={formLocked || submitting}>
-          {submitting ? "Menyimpan..." : "Simpan Hasil Panen"}
-        </button>
-      </form>
-    </main>
+          <div className="space-y-2">
+            <Label htmlFor="photos">Bukti foto</Label>
+            <Input
+              id="photos"
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={formLocked || submitting}
+              required
+              onChange={(event) =>
+                setPhotos(Array.from(event.target.files || []))
+              }
+              className="pt-1.5"
+            />
+            <p className="text-xs text-slate-500">
+              Bisa unggah lebih dari satu foto.
+            </p>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={formLocked || submitting}
+            className="w-full"
+          >
+            {submitting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : formLocked ? (
+              <Upload className="size-4" />
+            ) : (
+              <Save className="size-4" />
+            )}
+            {submitting
+              ? "Menyimpan..."
+              : formLocked
+                ? "Laporan hari ini terkunci"
+                : "Simpan Hasil Panen"}
+          </Button>
+        </form>
+      </SurfaceCard>
+    </PageShell>
   );
 }
-

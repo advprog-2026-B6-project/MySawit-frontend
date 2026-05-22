@@ -43,7 +43,7 @@ const Page = () => {
       !password ||
       (job === "Mandor" && !certificationNumber)
     ) {
-      toast.error("Please fill in all fields");
+      toast.error("Lengkapi seluruh data pendaftaran yang diperlukan.");
       return;
     }
 
@@ -60,10 +60,10 @@ const Page = () => {
         body: payload,
       });
 
-      toast.success("Registered successfully, please login");
+      toast.success("Akun berhasil didaftarkan. Silakan masuk.");
       router.push("/login");
     } catch (err) {
-      toast.error(err.message || "Registration failed. Please try again.");
+      toast.error(err.message || "Pendaftaran gagal. Periksa kembali data Anda.");
     } finally {
       setIsSubmitting(false);
     }
@@ -84,13 +84,13 @@ const Page = () => {
     <PageShell className="flex items-center">
       <div className="mx-auto w-full max-w-2xl">
         <PageHero
-          eyebrow="Authentication"
-          title="Create a clean operational account"
-          description="Registration now follows the same request lifecycle, shadcn-based form components, and admin/profile styling language."
+          eyebrow="Pendaftaran Pengguna"
+          title="Daftarkan akun operasional"
+          description="Buat akun MySawit untuk mendukung pencatatan kerja lapangan, pengawasan panen, dan distribusi komoditas."
           actions={
             <Button variant="outline" onClick={() => router.back()}>
               <ArrowLeft className="size-4" />
-              Back
+              Kembali
             </Button>
           }
         />
@@ -99,19 +99,19 @@ const Page = () => {
           <form onSubmit={handleRegister} className="space-y-5">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
-                Register
+                Pendaftaran
               </p>
               <h2 className="mt-2 text-2xl font-bold text-slate-900">
-                Set up your account
+                Lengkapi identitas pengguna
               </h2>
             </div>
 
             <div className="space-y-2">
-              <Label>Select your job</Label>
+              <Label>Pilih peran kerja</Label>
               <Combobox items={accountTypes} value={job} onValueChange={setJob}>
-                <ComboboxInput placeholder="Choose your role" />
+                <ComboboxInput placeholder="Pilih peran pengguna" />
                 <ComboboxContent>
-                  <ComboboxEmpty>No jobs found.</ComboboxEmpty>
+                  <ComboboxEmpty>Peran tidak ditemukan.</ComboboxEmpty>
                   <ComboboxList>
                     {(item) => (
                       <ComboboxItem key={item} value={item}>
@@ -126,25 +126,25 @@ const Page = () => {
             {job === "Mandor" ? (
               <div className="space-y-2">
                 <Label htmlFor="certification-number">
-                  Certification number
+                  Nomor sertifikasi
                 </Label>
                 <Input
                   id="certification-number"
                   value={certificationNumber}
                   onChange={(e) => setCertificationNumber(e.target.value)}
-                  placeholder="Enter certification number"
+                  placeholder="Masukkan nomor sertifikasi"
                   required
                 />
               </div>
             ) : null}
 
             <div className="space-y-2">
-              <Label htmlFor="full-name">Full name</Label>
+              <Label htmlFor="full-name">Nama lengkap</Label>
               <Input
                 id="full-name"
                 value={fullname}
                 onChange={(e) => setFullname(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder="Masukkan nama lengkap"
                 required
               />
             </div>
@@ -155,20 +155,20 @@ const Page = () => {
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="Choose a username"
+                placeholder="Tentukan username"
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Kata sandi</Label>
               <div className="flex gap-3">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Create a password"
+                  placeholder="Buat kata sandi"
                   autoComplete="new-password"
                   required
                 />
@@ -195,10 +195,10 @@ const Page = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Creating account...
+                  Mendaftarkan akun...
                 </>
               ) : (
-                "Register"
+                "Daftarkan Akun"
               )}
             </Button>
           </form>

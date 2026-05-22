@@ -16,7 +16,10 @@ function GlobalNavbar() {
   return (
     <header className="border-b border-green-100/80 bg-white/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8 xl:flex-row xl:items-center xl:justify-between">
-        <Link href="/" className="text-xl font-black tracking-tight text-green-900">
+        <Link
+          href="/"
+          className="text-xl font-black tracking-tight text-green-900"
+        >
           MySawit
         </Link>
         <nav className="flex flex-wrap gap-2">
@@ -43,7 +46,14 @@ export function PageShell({ children, className }) {
       )}
     >
       <GlobalNavbar />
-      <div className={cn("mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8", className)}>{children}</div>
+      <div
+        className={cn(
+          "mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8",
+          className,
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -91,6 +101,81 @@ export function SurfaceCard({ children, className }) {
   );
 }
 
+export function SectionHeader({ eyebrow, title, description, className }) {
+  return (
+    <div className={cn("mb-6", className)}>
+      {eyebrow ? (
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-green-700">
+          {eyebrow}
+        </p>
+      ) : null}
+      <h2 className="mt-2 text-2xl font-bold text-slate-900">{title}</h2>
+      {description ? (
+        <p className="mt-2 text-sm leading-6 text-slate-600">{description}</p>
+      ) : null}
+    </div>
+  );
+}
+
+export function AlertMessage({ type = "error", children, className }) {
+  const styles = {
+    error: "border-red-200 bg-red-50 text-red-700",
+    success: "border-green-200 bg-green-50 text-green-800",
+    warning: "border-amber-200 bg-amber-50 text-amber-800",
+    info: "border-sky-200 bg-sky-50 text-sky-800",
+  };
+
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border px-4 py-3 text-sm",
+        styles[type] || styles.info,
+        className,
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+export function LoadingState({ label = "Memuat data...", className }) {
+  return (
+    <SurfaceCard
+      className={cn(
+        "flex items-center justify-center gap-3 py-16 text-sm text-slate-500",
+        className,
+      )}
+    >
+      <span className="size-4 animate-spin rounded-full border-2 border-green-200 border-t-green-700" />
+      {label}
+    </SurfaceCard>
+  );
+}
+
+export function StatusBadge({ children, tone = "slate", className }) {
+  const tones = {
+    green: "border-green-200 bg-green-50 text-green-800",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    amber: "border-amber-200 bg-amber-50 text-amber-800",
+    red: "border-red-200 bg-red-50 text-red-800",
+    sky: "border-sky-200 bg-sky-50 text-sky-800",
+    violet: "border-violet-200 bg-violet-50 text-violet-800",
+    slate: "border-slate-200 bg-slate-50 text-slate-700",
+  };
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold",
+        tones[tone] || tones.slate,
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
 export function EmptyState({ title, description, actions, className }) {
   return (
     <div
@@ -100,7 +185,9 @@ export function EmptyState({ title, description, actions, className }) {
       )}
     >
       <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-      {description ? <p className="mt-2 text-sm text-slate-600">{description}</p> : null}
+      {description ? (
+        <p className="mt-2 text-sm text-slate-600">{description}</p>
+      ) : null}
       {actions ? <div className="mt-5 flex justify-center gap-3">{actions}</div> : null}
     </div>
   );
